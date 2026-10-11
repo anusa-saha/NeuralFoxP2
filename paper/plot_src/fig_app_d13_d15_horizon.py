@@ -76,7 +76,12 @@ fig.savefig(f"{out_dir}/fig_app_disagreement.png", dpi=300, bbox_inches="tight",
 h = pd.read_csv(f"{data_dir}/e30_horizon.csv")
 labels = list(h.horizon.astype(str))
 x = np.arange(len(h))
-fig, (a, b) = plt.subplots(1, 2, figsize=(6.3, 1.6), gridspec_kw={"wspace": 0.3})
+# Leakage is pending recomputation under the revised definition; panel (b) only when available.
+has_leak = h.leakage.notna().all()
+if has_leak:
+    fig, (a, b) = plt.subplots(1, 2, figsize=(6.3, 1.6), gridspec_kw={"wspace": 0.3})
+else:
+    fig, a = plt.subplots(figsize=(3.03, 1.6)); b = None
 a.plot(x, h.rate, color="#2a78d6", marker="o", ms=3, lw=1.4)
 for xi, v in zip(x, h.rate):
     below = xi == 0
@@ -84,10 +89,11 @@ for xi, v in zip(x, h.rate):
            va="top" if below else "bottom", fontsize=5.8, color=INK2)
 a.set_ylabel("target-language rate (%)", labelpad=1)
 a.set_ylim(40, 82)
-b.plot(x, h.leakage, color="#2a78d6", marker="o", ms=3, lw=1.4)
-b.set_ylabel("leakage", labelpad=1)
-b.set_ylim(0, 0.03)
-for ax, tag in ((a, "(a)"), (b, "(b)")):
+if has_leak:
+    b.plot(x, h.leakage, color="#2a78d6", marker="o", ms=3, lw=1.4)
+    b.set_ylabel("leakage", labelpad=1)
+    b.set_ylim(0, 0.03)
+for ax, tag in (((a, "(a)"), (b, "(b)")) if has_leak else ((a, ""),)):
     ax.set_xticks(x, labels)
     ax.set_xlabel("horizon (tokens)", labelpad=1)
     style(ax)

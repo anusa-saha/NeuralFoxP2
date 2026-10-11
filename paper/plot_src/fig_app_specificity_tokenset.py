@@ -76,7 +76,7 @@ a.plot(x, [c[key].mean() for key, _ in cons], ls="none", marker="_", ms=14, mew=
 a.set_xticks(x, [lab for _, lab in cons], fontsize=6.5)
 a.set_xlabel("token-set construction", labelpad=1)
 a.set_ylim(0.40, 0.65)
-a.set_ylabel(r"\textsc{Default} gain".replace(r"\textsc{Default}", "DEFAULT"), labelpad=1)
+a.set_ylabel("DEFAULT under Neural FOXP2", labelpad=1)
 
 cols = ["0", "10", "20", "30", "40", "50"]
 xs = [int(v) for v in cols]
@@ -84,7 +84,7 @@ for k, m in enumerate(MODELS):
     b.plot(xs, d.loc[m, cols].values, color=SLOT[k], marker=MARK[k], ms=2.8, lw=1.0, label=SHORT[k])
 b.set_xticks(xs)
 b.set_xlabel("diagnostic tokens removed (%)", labelpad=1)
-b.set_ylabel("gain retained (%)", labelpad=1)
+b.set_ylabel("DEFAULT retained (%)", labelpad=1)
 b.set_ylim(50, 102)
 
 y = np.arange(len(MODELS))[::-1]
@@ -97,7 +97,7 @@ for k, m in enumerate(MODELS):
     cc.plot(n.loc[m, "real"], yy, marker=MARK[k], ms=4.5, color=SLOT[k], ls="none")
 cc.set_yticks(y, ["L-8B", "G-9B", "G-2B", "Q-8B"])
 cc.set_xlim(-0.05, 0.7)
-cc.set_xlabel("DEFAULT gain", labelpad=1)
+cc.set_xlabel("DEFAULT", labelpad=1)
 cc.legend(loc="center", fontsize=5.6, handlelength=1.0, bbox_to_anchor=(0.5, 0.5))
 
 for ax, tag in zip((a, b, cc), ("(a)", "(b)", "(c)")):

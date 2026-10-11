@@ -57,3 +57,21 @@ SAE regimes corrected to the published sources: Llama Scope, Gemma Scope and Qwe
 Disputed values kept out of the main text until the data are fixed: the unedited mean of 1.6% (§3.4 now says "no pair exceeds 3.9%"), P(stay) at t=0 (.246), the Figure 13 diagonal (+38.2) and the English drop (−31.9). They remain in the appendix and in A1–A3 above.
 
 Still open: all of section A, plus B1, B8, B12, B13, B16–B18.
+
+## E. Status after applying decisions A1–A9, B1–B19 (Oct 11)
+
+Run `python plot_src/check_identities.py plot_src/data latex` (output in `identity_checks.txt`): 16 pass, 3 fail, 6 pending, 3 warn.
+Values that must be recomputed were blanked in `plot_src/data` (git history keeps the old values) and appear as red `[?]` in the PDF.
+
+| ID | Applied | Still needs data |
+|---|---|---|
+| A1 | Text uses 1.9% (No-Cue, per-language 1.6–2.4) and 1.6% (Neutral); No-Cue rows of the baseline table blanked; heatmap prints No-Cue rates no longer. | Regenerate E1 No-Cue per-model rows (checks 1b, 1c); Neutral rows average 4.3%, not 1.6%. |
+| A2 | t=0 = 0.019 (macro); headline "1.9% → 77.3%"; per-model t=0 blanked; all commitment figures regenerated. | Per-model t=0 (check 2b). |
+| A3 | No-Cue diagonal 33.1–42.8 (mean 38.2) and Neutral 48.3–64.4 (mean 56.7) reported as separate prompt sets. | The 56.7 range comes from Table 3, captioned No-Cue; confirm its source (orange note in §6.2). |
+| A4 | One definition (mean absolute increase in off-target DEFAULT, fraction); FOXP2 = 0.0065 everywhere. | Leakage for all other methods, ablation variants, E30 horizons and E31 sweep (check 8b). |
+| A5 | Verified against `hindi/stage3.py` (β = ratio·λ, so ratio 0 = promotion only). Ablation (c)/(d) swapped; narrative now "suppression carries more of the effect". | Confirm the E13 run used the same code. |
+| A6 | Ddev unedited DEFAULT = 0.214; E25 values described as absolute DEFAULT; Deval M0 DEFAULT not inferred. | Deval M0 DEFAULT (check 4b). |
+| A7 | Table 1 = macro (.819); Fig. 2a and Fig. 2(a) labelled pooled prompt-level AUC (.837). | Macro AUC by k to make the figure match (check 7). |
+| A8 | Necessity baseline = 15.7% (M1). | Per-model and per-language baselines. |
+| A9 | Single-layer IT-SAE rows blanked; Ddev sweep identified as Ddev. | Single-layer run; Ddev operating-point rows (check 5b). |
+| B1–B19 | Applied as specified (S primary, DEFAULT column + test family, six-benchmark ΔS, eight baselines, ceiling rank, cue pool 100×6, B9/B10/B13/B15/B16 wording, −0.57, matched-KL procedure, stability ranges). | B17: Table 5 FOXP2 MMLU/GSM8K average −0.70 vs −0.57 (check 9c); Llama/Qwen overall ΔS; S macro AUC and ρ in Table 1; two-decimal r_eff. |

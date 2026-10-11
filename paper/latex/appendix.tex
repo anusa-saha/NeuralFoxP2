@@ -72,7 +72,7 @@ Table~\ref{tab:app-prompts-conditions} lists the sources and sizes of the three 
 \end{table*}
 
 \paragraph{Cue-strength prompts.}
-For test D6 (Appendix~\ref{app:metric-suite}) each of \res{n} \nocue items is rewritten at six cue levels with the content held fixed: L0 no cue; L1 a topic tied to a region where the language is spoken; L2 one target-language word in the prompt; L3 an English instruction to answer in the target language; L4 the same instruction written in the target language; L5 the whole prompt in the target language.
+For test D6 (Appendix~\ref{app:metric-suite}) each of 100 \nocue items is rewritten at six cue levels, giving 600 cue conditions per model--language pair, with the content held fixed: L0 no cue; L1 a topic tied to a region where the language is spoken; L2 one target-language word in the prompt; L3 an English instruction to answer in the target language; L4 the same instruction written in the target language; L5 the whole prompt in the target language.
 
 \paragraph{Romanized variants.}
 For the script control (Appendix~\ref{app:script-control}) we use romanized Hindi from the Dakshina dataset \citep{roark-etal-2020-processing} and romanize Russian with ISO~9 \citep{iso9}.
@@ -125,7 +125,7 @@ Table~\ref{tab:app-sae} reports, for the layers inside each model's window, the 
 \end{table}
 
 \paragraph{Dictionaries trained on instruction-tuned models.}
-Gemma Scope also releases dictionaries trained on Gemma-2-9B-it for a few layers \citep{lieberum2024gemmascopeopensparse}. At such a layer inside the Gemma-2-9B-it window (layer \res{layer}), we build a single-layer \foxp edit twice, once with each dictionary and with the same Stage~I--III rules and $\gamma$ tuning, and evaluate both on the \nocue evaluation prompts (Table~\ref{tab:app-it-sae}). The instruction-trained dictionary changes \default by $-0.013$ (95\% CI [$-0.031$, $+0.006$]), the full-response rate by $-0.8$ points ([$-3.1$, $+1.4$]) and utility by $+0.06$ points ([$-0.08$, $+0.19$]); all three intervals include zero.
+Gemma Scope also releases dictionaries trained on Gemma-2-9B-it for a few layers \citep{lieberum2024gemmascopeopensparse}. At such a layer inside the Gemma-2-9B-it window (layer \res{layer}), we build a single-layer \foxp edit twice, once with each dictionary and with the same Stage~I--III rules and $\gamma$ tuning, and evaluate both on the \nocue evaluation prompts (Table~\ref{tab:app-it-sae}). Both rows come from the single-layer run, not from the full multi-layer edit. The instruction-trained dictionary changes \default by $-0.013$ (95\% CI [$-0.031$, $+0.006$]), the full-response rate by $-0.8$ points ([$-3.1$, $+1.4$]) and utility by $+0.06$ points ([$-0.08$, $+0.19$]); all three intervals include zero.
 
 \begin{table}[!htbp]
   \centering
@@ -134,13 +134,13 @@ Gemma Scope also releases dictionaries trained on Gemma-2-9B-it for a few layers
     \toprule
     \textbf{Dictionary} & \textbf{\default}$\uparrow$ & \textbf{Full resp.\ \%}$\uparrow$ & \textbf{$\Delta S$} \\
     \midrule
-    Base-trained          & 0.587 & 58.7 & $-0.28$ \\
-    Instruction-trained   & 0.574 & 57.9 & $-0.22$ \\
+    Base-trained          & \res{?} & \res{?} & \res{?} \\
+    Instruction-trained   & \res{?} & \res{?} & \res{?} \\
     \midrule
     Difference            & $-0.013$ & $-0.8$ & $+0.06$ \\
     \bottomrule
   \end{tabular}
-  \caption{\textbf{Base- vs instruction-trained dictionaries} for a single-layer edit in Gemma-2-9B-it at layer \res{layer}, macro over six languages. Difference: instruction-trained minus base-trained; paired bootstrap 95\% CIs [$-0.031$, $+0.006$], [$-3.1$, $+1.4$] and [$-0.08$, $+0.19$].}
+  \caption{\textbf{Base- vs instruction-trained dictionaries} for a single-layer edit in Gemma-2-9B-it at layer \res{layer}, macro over six languages. Both rows must come from the single-layer run and are being recomputed; the differences are paired estimates from that run. Difference: instruction-trained minus base-trained; paired bootstrap 95\% CIs [$-0.031$, $+0.006$], [$-3.1$, $+1.4$] and [$-0.08$, $+0.19$].}
   \label{tab:app-it-sae}
 \end{table}
 
@@ -206,7 +206,7 @@ subject to the guardrails $\mathrm{Leak}\le\epsilon_{\mathrm{leak}}$, $\mathrm{K
     Pairs, IQR    & 7.1--9.5 & 11.6--13.8 & 17.0--20.1 & \\
     \bottomrule
   \end{tabular}
-  \caption{\textbf{Low-rank structure against null models} at the central window layer. Null A: random feature supports of size $K$; Null B: meaning-shuffled pairs. Var.\ top-$r$: share of variance explained by the top $r$ singular directions of the real matrix (67.2\% and 55.4\% for Nulls A and B across pairs). Model rows: macro over languages, nulls as median over resamples. Pairs: distribution over the 24 model--language pairs; for 20 of 24 pairs the real effective rank is below the 5th percentile of Null B.}
+  \caption{\textbf{Low-rank structure against null models} at the central window layer. Null A: random feature supports of size $K$; Null B: meaning-shuffled pairs. Var.\ top-$r$: share of variance explained by the top $r$ singular directions of the real matrix (67.2\% and 55.4\% for Nulls A and B across pairs). Model rows: macro over languages at the central window layer, nulls as median over resamples. Pairs: per-pair median over the layers of the selected window, summarized over the 24 model--language pairs (a different population from the layer-level values of Table~\ref{tab:app-windows}); for 20 of 24 pairs the real effective rank is below the 5th percentile of Null B.}
   \label{tab:app-lowrank}
 \end{table}
 
@@ -272,7 +272,7 @@ subject to the guardrails $\mathrm{Leak}\le\epsilon_{\mathrm{leak}}$, $\mathrm{K
      & ar & 9--19 & 5 & 7.8 & 0.75 &  \\
     \bottomrule
   \end{tabular}
-  \caption{\textbf{Artifacts per model and language}: selected window $\mathcal{W}$ (layers), subspace rank $r$ and effective rank $r_{\mathrm{eff}}$, and scale $\gamma$ at the operating point. Windows span 28--35\% of model depth. Constr.: pair flagged as constrained, i.e.\ not meeting every guardrail on \Ddev (3 of 24, all Hindi).}
+  \caption{\textbf{Artifacts per model and language}: selected window $\mathcal{W}$ (layers), subspace rank $r=\min(\lceil r_{\mathrm{eff}}\rceil,i^\star)$, raw effective rank $r_{\mathrm{eff}}$, and scale $\gamma$ at the operating point. $r_{\mathrm{eff}}$ here summarizes the layer-level distribution across the layers of the selected window (median 8.55, IQR 7.75--9.27 over pairs), a different summary from the per-pair medians of Table~\ref{tab:app-lowrank} (8.3, IQR 7.1--9.5). Windows span 28--35\% of model depth. Constr.: pair flagged as constrained, i.e.\ not meeting every guardrail on \Ddev (3 of 24, all Hindi).}
   \label{tab:app-windows}
 \end{table}
 
@@ -287,7 +287,7 @@ All baselines use the same prompts, decoding settings, metrics and guardrails as
 The \emph{short instruction} appends ``Answer in \textit{X}.'' to the user turn. The \emph{system prompt} adds the fixed system message ``Always respond in \textit{X}.''; it is the same for every model and language and is not tuned. The \emph{best prompt} is selected separately for every model--language pair: each of the ten strategies in Table~\ref{tab:app-prompt-sweep} is evaluated on \Ddev and the one with the highest \default is kept. The system message is strategy P3, so the best prompt can never be worse than the system prompt on \Ddev; on \Deval it is 1.8 points better (Table~\ref{tab:main}). Table~\ref{tab:app-tuning} lists the tuning choices and development budget of every method.
 
 \paragraph{Difference-in-means.}
-At each layer in $\mathcal{W}$ we add $\gamma_4\,v^{(\ell)}$ with $v^{(\ell)}=\mathbb{E}_k[h^{(\ell)}(x^{(k)}_{\ell_t})-h^{(\ell)}(x^{(k)}_{\mathrm{en}})]$, in the style of contrastive activation addition \citep{rimsky-etal-2024-steering}. The scale $\gamma_4$ is tuned per pair on \Ddev under the same guardrails as \foxp (Table~\ref{tab:app-tuning}).
+At each layer in $\mathcal{W}$ we add $\gamma_4\,v^{(\ell)}$ with $v^{(\ell)}=\mathbb{E}_k[h^{(\ell)}(x^{(k)}_{\ell_t})-h^{(\ell)}(x^{(k)}_{\mathrm{en}})]$, in the style of contrastive activation addition \citep{rimsky-etal-2024-steering}. The scale $\gamma_4$ is tuned per model--language pair on \Ddev under the same guardrails as \foxp; the median selected $\gamma$ is 0.75 (Table~\ref{tab:app-tuning}).
 
 \paragraph{Difference-in-means with projection.}
 Difference-in-means steering plus removal of the component of $h^{(\ell)}$ along the mean English-prompt direction, analogous to directional ablation \citep{arditi2024refusal}. It is the dense counterpart of Eq.~\ref{eq:edit} without SAE support or subspace.
@@ -369,13 +369,13 @@ The response is split into sentences; code blocks are removed. A response is \em
 Line-level pass rate as defined by \citet{marchisio-etal-2024-understanding}, computed with the benchmark's code on our outputs.
 
 \paragraph{Leakage.}
-For an edit toward $\ell_t$, leakage is $\frac{1}{5}\sum_{\ell'\ne\ell_t}\max\big(0,\textsc{Default}_{\ell'}(\text{edit})-\textsc{Default}_{\ell'}(\text{none})\big)$ over the other five suite languages.
+For an edit toward $\ell_t$, leakage is the mean absolute increase in off-target \default, with \default expressed as a fraction: $\frac{1}{5}\sum_{\ell'\ne\ell_t}\max\big(0,\textsc{Default}_{\ell'}(\text{edit})-\textsc{Default}_{\ell'}(\text{none})\big)$ over the other five suite languages. Every table uses this definition and unit; Figure~\ref{fig:leakage} shows the same changes in percentage points, and its off-diagonal mean, 0.65 points, is the \foxp leakage of 0.0065 in Table~\ref{tab:main}. Leakage values for the other methods, ablations and sweeps are being recomputed from the raw matrices under this definition.
 
 \paragraph{KL drift.}
 $\frac{1}{|T|}\sum_{t\in T}\mathrm{KL}\big(p_{\mathrm{edit}}(\cdot\mid x,y_{<t})\,\|\,p_\theta(\cdot\mid x,y_{<t})\big)$, averaged over \nocue prompts.
 
 \paragraph{Utility.}
-Regime A: XNLI \citep{xnli} and Belebele \citep{bandarkar2024belebele} accuracy by log-likelihood over label options; XL-Sum \citep{xlsum} ROUGE-L with a multilingual tokenizer; FLORES en$\rightarrow$X, scored with chrF++ \citep{popovic2017chrf} and COMET \citep{rei2020comet} and reported as a composite of the two (\res{how the two are combined}). Regime B: accuracy on an MMLU subset \citep{hendrycks2021mmlu} (option letter by log-likelihood) and GSM8K \citep{cobbe2021gsm8k} (final number extracted independently of the output language). Regime C: an LLM judge rates fluency and adequacy of \nocue answers on a 1--5 scale with the rubric in Appendix~\ref{app:human}. $\Delta S$ for a method is its mean change against the unedited model over the six benchmarks of regimes A and B; per-task changes are in Table~\ref{tab:app-utility}, and the regime C ratings are reported separately.
+Regime A: XNLI \citep{xnli} and Belebele \citep{bandarkar2024belebele} accuracy by log-likelihood over label options; XL-Sum \citep{xlsum} ROUGE-L with a multilingual tokenizer; FLORES en$\rightarrow$X, scored with chrF++ \citep{popovic2017chrf} and COMET \citep{rei2020comet} and reported as a composite of the two (\res{how the two are combined}). Regime B: accuracy on an MMLU subset \citep{hendrycks2021mmlu} (option letter by log-likelihood) and GSM8K \citep{cobbe2021gsm8k} (final number extracted independently of the output language). Regime C: an LLM judge rates fluency and adequacy of \nocue answers on a 1--5 scale with the rubric in Appendix~\ref{app:human}. $\Delta S$ for a method is the predeclared mean of its changes against the unedited model on the six benchmarks of regimes A and B (XNLI, Belebele, XL-Sum, FLORES, MMLU and GSM8K). Results are reported per benchmark, with the six-benchmark aggregate in the main comparison; FLORES chrF++ and COMET are reported individually in Table~\ref{tab:app-utility}, and the regime C ratings are reported separately.
 
 % ============================================================================
 \FloatBarrier
@@ -397,8 +397,7 @@ S(x)&=\frac{1}{|T|}\sum_{t\in T}\frac{M_{\mathrm{tgt}}(x,t)}{M_{\mathrm{tgt}}(x,
 \end{equation*}
 and a decayed weighting $1/t$ in place of the uniform average. \textbf{D1} selects the form with the highest AUC for full-response language on \Ddev. \textbf{D2} computes the same AUC for $T=\{1,\dots,k\}$, $k=1,\dots,10$, and selects the smallest $k$ within 0.01 of the maximum.
 
-Table~\ref{tab:app-metric-form} gives the \Ddev results. The rule selects $k{=}3$ for \dM and $S$, $k{=}5$ for the $1/t$-weighted \dM and for $\Delta L$, and $k{=}10$ for prefix language identification. $S$ is at or above \dM at every horizon on \Ddev (by at most .013), and the two remain within each other's 95\% intervals at every $k$ on \Deval (Figure~\ref{fig:metric-validity}a). The decayed weighting never improves on the uniform average.
-\finding{State the tie-break that keeps \dM as the primary form over $S$ (see the note in Section~\ref{subsec:metric}).}
+Table~\ref{tab:app-metric-form} gives the \Ddev results. The rule selects $k{=}3$ for \dM and $S$, $k{=}5$ for the $1/t$-weighted \dM and for $\Delta L$, and $k{=}10$ for prefix language identification. $S$ is at or above \dM at every horizon on \Ddev (by at most .013), so D1 selects $S$, and $S$ is the primary predictive metric of the paper; \dM is kept as the mechanistically interpretable metric used by Stage~I and \default (Section~\ref{subsec:metric}). The two remain within each other's 95\% intervals at every $k$ on \Deval (pooled prompt-level AUC; Figure~\ref{fig:metric-validity}a). The decayed weighting never improves on the uniform average.
 
 \begin{table}[!htbp]
   \centering
@@ -424,7 +423,7 @@ Table~\ref{tab:app-metric-form} gives the \Ddev results. The rule selects $k{=}3
   \centering
   \figslot{\linewidth}{6.2cm}{Figures/revision/fig_metric_validity.pdf}{%
   Three panels: AUC vs horizon; reliability diagram; \dM by cue level.}
-  \caption{\textbf{Validity of the defaultness score.} (a) AUC for the language of the finished response on \Deval against the horizon $k$, with 95\% intervals (shaded); the dotted line marks the horizon selected on \Ddev. (b) Calibration against the finished response. (c) Mean \dM at six cue levels, from no cue (L0) to a prompt written entirely in the target language (L5). Macro over four models.}
+  \caption{\textbf{Validity of the defaultness score.} (a) Pooled prompt-level AUC for the language of the finished response on \Deval against the horizon $k$ (not the macro AUC over pairs of Table~\ref{tab:metric-validity}: .837 pooled vs .819 macro for \dM at $k{=}3$), with 95\% intervals (shaded); the dotted line marks the horizon selected on \Ddev. (b) Calibration against the finished response. (c) Mean \dM at six cue levels, from no cue (L0) to a prompt written entirely in the target language (L5). Macro over four models.}
   \label{fig:metric-validity}
 \end{figure}
 \finding{Panel (b) still needs the reliability-bin data (10 bins of \dM vs observed full-response target rate, per model).}
@@ -438,7 +437,7 @@ The horizon $T$ decides what the defaultness score is allowed to see, and it was
 \paragraph{Does accuracy keep improving with more steps?}
 It does not. Figure~\ref{fig:app-horizon-selection}a plots, for every form of the score, the gap between the AUC at horizon $k$ and the best AUC of that form on \Ddev. The uniform \dM is within the tolerance of 0.01 at $k{=}3$ (.843 against a maximum of .851 at $k{=}10$), so the rule selects three steps. The target-share form $S$ is also within tolerance at $k{=}3$ (.848 against .851). The $1/t$-weighted \dM and the log-odds form $\Delta L$ converge more slowly and are selected at $k{=}5$, but neither exceeds the uniform \dM at its own selected horizon (.841 and .839, against .843 at $k{=}3$), so a longer horizon would buy a more complicated score without a more accurate one. Prefix language identification behaves differently: on the same three tokens it reaches only .816 and needs ten tokens to reach its maximum (.860). Because \dM reads the whole next-token distribution rather than the single token that is emitted, it extracts more information from each step, which is why it saturates earlier.
 
-Figure~\ref{fig:app-horizon-selection}b shows the same pattern on \Deval as the change in AUC contributed by each additional step. For \dM, the second and third steps add .047 and .033; every later step changes the AUC by between $-.006$ and $+.006$, and the seven steps from $k{=}3$ to $k{=}10$ add .005 in total, well inside the 95\% intervals of Figure~\ref{fig:metric-validity}a. The first step alone is not enough either: \dM at $k{=}1$ trails $k{=}3$ by .065 on \Ddev and .080 on \Deval, and the first-token argmax, which also uses a single step, stays near .69--.70 on \Deval whatever the horizon. The first token can be a formatting mark, a digit or the beginning of a named entity, which carry little information about the language that follows (Appendix~\ref{app:disagreement}).
+Figure~\ref{fig:app-horizon-selection}b shows the same pattern on \Deval, in pooled prompt-level AUC, as the change in AUC contributed by each additional step. For \dM, the second and third steps add .047 and .033; every later step changes the AUC by between $-.006$ and $+.006$, and the seven steps from $k{=}3$ to $k{=}10$ add .005 in total, well inside the 95\% intervals of Figure~\ref{fig:metric-validity}a. The first step alone is not enough either: \dM at $k{=}1$ trails $k{=}3$ by .065 on \Ddev and .080 on \Deval, and the first-token argmax, which also uses a single step, stays near .69--.70 on \Deval whatever the horizon. The first token can be a formatting mark, a digit or the beginning of a named entity, which carry little information about the language that follows (Appendix~\ref{app:disagreement}).
 
 \begin{figure*}[!htbp]
   \centering
@@ -448,12 +447,12 @@ Figure~\ref{fig:app-horizon-selection}b shows the same pattern on \Deval as the 
 \end{figure*}
 
 \paragraph{Has the model committed by the third step?}
-In all four models it has, for the most part. Figure~\ref{fig:app-horizon-commitment} decomposes the commitment curves of Figure~\ref{fig:commitment}. The first forced target-language token raises the probability that the response stays in the target language by .262 on average, the second by .168 and the third by .097; from three to five tokens the gain falls to .027 per token, and from five to ten tokens to .008 per token (panel a). Measured against the effect of forcing ten tokens, three tokens already deliver 89\% of it for Llama-3.1-8B-Instruct, 83\% for Gemma-2-9B-it, 82\% for Gemma-2-2B-it and 87\% for Qwen3-8B (panel b; 85\% for the mean curve). The same is true in the opposite direction: with three English tokens forced, 97.3\% of responses stay in English to the end (Appendix~\ref{app:commitment}). By the third step, then, the next-token distributions largely reflect a language that has already been chosen, and extending the horizon would add steps that describe the continuation of that choice rather than the choice itself.
+In all four models it has, for the most part. Figure~\ref{fig:app-horizon-commitment} decomposes the commitment curves of Figure~\ref{fig:commitment}. With no forced tokens, the share of responses that stay in the target language is the unedited full-response rate, 1.9\% (Table~\ref{tab:main}). The first forced target-language token raises it by .490 on average, the second by .168 and the third by .097; from three to five tokens the gain falls to .027 per token, and from five to ten tokens to .008 per token (panel a). Measured against the effect of forcing ten tokens, three tokens already deliver 89\% of it on the mean curve (panel b). Per-model values at $t{=}0$ must equal each model's Experiment~1 rate and are being regenerated, so per-model curves are shown from $t{=}1$. The same is true in the opposite direction: with three English tokens forced, 97.3\% of responses stay in English to the end (Appendix~\ref{app:commitment}). By the third step, then, the next-token distributions largely reflect a language that has already been chosen, and extending the horizon would add steps that describe the continuation of that choice rather than the choice itself.
 
 \begin{figure*}[!htbp]
   \centering
   \includegraphics[width=\textwidth]{Figures/revision/fig_app_horizon_commitment.pdf}
-  \caption{\textbf{Commitment saturates after about three tokens.} (a) Gain in the probability that an unedited response stays in the target language to the end, per additional forced target-language token, for each model and for the mean over models; gains for the intervals 3--5 and 5--10 are divided by the number of tokens added. (b) Share of the increase from $t{=}0$ to $t{=}10$ that is reached after $t$ forced tokens; the legend gives the share at $t{=}3$. Data as in Figure~\ref{fig:commitment}.}
+  \caption{\textbf{Commitment saturates after about three tokens.} (a) Gain in the probability that an unedited response stays in the target language to the end, per additional forced target-language token, for each model (from $t{=}1$) and for the mean over models (from $t{=}0$, where it equals the unedited full-response rate of 1.9\%); gains for the intervals 3--5 and 5--10 are divided by the number of tokens added. (b) Share of the increase of the mean curve from $t{=}0$ to $t{=}10$ that is reached after $t$ forced tokens. Data as in Figure~\ref{fig:commitment}.}
   \label{fig:app-horizon-commitment}
 \end{figure*}
 
@@ -461,7 +460,7 @@ In all four models it has, for the most part. Figure~\ref{fig:app-horizon-commit
 Under \foxp, the share of responses whose first $k$ tokens are in the target language is 49.8\% at $k{=}1$, 64.1\% at $k{=}2$ and peaks at 74.6\% at $k{=}3$; it then declines to 72.8\% at five tokens, 69.4\% at ten and 58.7\% over the full response (Figure~\ref{fig:app-horizon}). The edit is thus strongest on the opening of the response, which is exactly the part of decoding the score reads, and the later decline comes from responses that start in the target language and then switch away. Switching away is a distinct failure with its own measures, the full-response rate and the switch-away rate (Appendix~\ref{app:metrics}). A longer horizon would mix the two phenomena in one number and make \dM a blunter objective for the Stage~I search and the window selection, which need to reward edits that change the decision.
 
 \paragraph{What does a longer horizon cost?}
-Computing \dM at horizon $k$ requires $k$ decoding steps per prompt, and \dM is evaluated many times while an artifact is built: for every candidate feature at three probe strengths in the Stage~I lift, and for every candidate window and scale on \Ddev; KL drift is measured over the same steps. A ten-step horizon would multiply the scoring cost of each of these computations by $10/3\approx3.3$ with, as shown above, no measurable gain in validity. Figure~\ref{fig:app-horizon-synthesis} puts the four considerations side by side. Prediction and commitment both reach about 85--88\% of their maximum at three steps, the steered opening reaches its peak there, and the cost of scoring keeps growing linearly beyond it. Three steps is the shortest horizon at which all three signals are close to their maximum.
+Computing \dM at horizon $k$ requires $k$ decoding steps per prompt, and \dM is evaluated many times while an artifact is built: for every candidate feature at three probe strengths in the Stage~I lift, and for every candidate window and scale on \Ddev; KL drift is measured over the same steps. A ten-step horizon would multiply the scoring cost of each of these computations by $10/3\approx3.3$ with, as shown above, no measurable gain in validity. Figure~\ref{fig:app-horizon-synthesis} puts the four considerations side by side. Prediction and commitment both reach 88--89\% of their maximum at three steps, the steered opening reaches its peak there, and the cost of scoring keeps growing linearly beyond it. Three steps is the shortest horizon at which all three signals are close to their maximum.
 
 \begin{figure}[!htbp]
   \centering
@@ -483,7 +482,7 @@ Computing \dM at horizon $k$ requires $k$ decoding steps per prompt, and \dM is 
     \midrule
     \dM (ours)            & .796 & .819 & .814 & 3 steps \\
     Log-odds form         & & & .802 & 3 steps \\
-    Target-share form     & & & .827 & 3 steps \\
+    Target-share form $S$ & \res{?} & \res{?} & .827 & 3 steps \\
     First-token argmax    & & .733 & .706 & 1 step \\
     Prefix LID, 3 tokens  & & .787 & .779 & 3 steps \\
     Prefix LID, 20 tokens & & .823 & .842 & 20 steps \\
@@ -491,7 +490,7 @@ Computing \dM at horizon $k$ requires $k$ decoding steps per prompt, and \dM is 
     LLM judge             & & .834 & .851 & full output \\
     \bottomrule
   \end{tabular}
-  \caption{\textbf{Predicting the language of the finished response}, macro over 24 model--language pairs. $\rho$: Spearman correlation with the full-response label (mean over models); AUC: against the full-response label; AUC$_{\text{h}}$: against human language judgments (Section~\ref{subsec:human}). Per-pair spread and per-model correlations are in Table~\ref{tab:app-criterion}.}
+  \caption{\textbf{Predicting the language of the finished response}, macro AUC over 24 model--language pairs (\Deval); the pooled prompt-level AUC of Figure~\ref{fig:metric-validity}a is a different aggregation. $S$ is the primary predictive metric, \dM the mechanistically interpretable one; red cells are pending recomputation under the macro aggregation. $\rho$: Spearman correlation with the full-response label (mean over models); AUC: against the full-response label; AUC$_{\text{h}}$: against human language judgments (Section~\ref{subsec:human}). Per-pair spread and per-model correlations are in Table~\ref{tab:app-criterion}.}
   \label{tab:metric-validity}
 \end{table}
 
@@ -596,7 +595,7 @@ We fit an isotonic map from \dM to the probability that the full response is in 
 \FloatBarrier
 \subsection{Reliability and discriminant validity (D7, D8)}
 
-\textbf{D7} computes the intraclass correlation ICC(2,1) \citep{shrout1979intraclass} of \dM across five paraphrases of each prompt. Unedited \nocue responses are almost all English, so their \dM varies little and an ICC on them would be low only through restricted range; we therefore use 50 items of the cue-strength pool, each paraphrased five times and rendered at all six cue levels, with item-at-level as the subject. Split-half reliability splits $V_{\mathrm{tgt}}$ and $V_{\mathrm{en}}$ at random into halves 100 times and reports the Spearman--Brown corrected correlation between the two halves' \dM. \textbf{D8} computes partial Spearman correlations of \dM with properties it should not track (prompt length, response length and answer adequacy judged as in regime C), controlling for the share of target-language sentences, and the correlation ratio $\eta$ of \dM over the seven task types.
+\textbf{D7} computes the intraclass correlation ICC(2,1) \citep{shrout1979intraclass} of \dM across five paraphrases of each prompt. Unedited \nocue responses are almost all English, so their \dM varies little and an ICC on them would be low only through restricted range; we therefore use a separate subset of 50 items drawn from the cue-strength pool, each paraphrased five times and rendered at all six cue levels, with item-at-level as the subject. Split-half reliability splits $V_{\mathrm{tgt}}$ and $V_{\mathrm{en}}$ at random into halves 100 times and reports the Spearman--Brown corrected correlation between the two halves' \dM. \textbf{D8} computes partial Spearman correlations of \dM with properties it should not track (prompt length, response length and answer adequacy judged as in regime C), controlling for the share of target-language sentences, and the correlation ratio $\eta$ of \dM over the seven task types.
 
 \dM is reliable: ICC is 0.71--0.82 across models (mean 0.77) and split-half reliability 0.85--0.92 (mean 0.89), with every lower 95\% bound at or above 0.63 and 0.80 respectively (Table~\ref{tab:app-reliability}). It is nearly unrelated to prompt length ($\rho\le0.06$) and task type ($\eta\le0.08$), and only weakly related to answer adequacy ($\rho\le0.12$). The largest association is with response length ($\rho=0.09$--$0.19$, mean 0.14), possibly because longer responses give more room to switch away from the opening language.
 
@@ -640,17 +639,17 @@ For each pair of suite languages $(a,b)$ we compute $\Delta M_a$ on responses id
 
 \paragraph{Re-scoring.} The logs store class masses only for the default token sets. To evaluate other sets (D7 split halves, D10, D11), we re-run each stored response teacher-forced on the prompt and its first $k$ generated tokens and compute, in the same pass, the masses of every alternative set at each step. No new text is generated.
 
-The headline result does not depend on how the token sets are built (Figure~\ref{fig:app-tokenset}a). The \foxp \default gain is 0.573 with the diagnostic sets, 0.583 with transliteration-aware sets and 0.550 with frequency thresholds of $\rho=2$ and $10$. Script-only sets give the lowest gain (0.495); for Spanish and French, which share English's script, this construction keeps only tokens with language-specific characters. Removing diagnostic tokens at random degrades the gain gradually, to 96.5\% of its value at 10\% removal and 64.8\% at 50\% (Figure~\ref{fig:app-tokenset}b). Random token sets matched in size and frequency give gains of 0.003--0.011 (SD 0.025--0.031, 1{,}000 draws); their 95th percentile is at most 0.059, against real gains of 0.55--0.60 (Figure~\ref{fig:app-tokenset}c). Counting shared tokens as diagnostic would inflate \dM by at most 0.07.
+The headline result does not depend on how the token sets are built (Figure~\ref{fig:app-tokenset}a). The per-model values are absolute \default scores of \foxp outputs, not gains over the unedited model. \default is 0.573 with the diagnostic sets, 0.583 with transliteration-aware sets and 0.550 with frequency thresholds of $\rho=2$ and $10$. Script-only sets underperform overall on this macro comparison (0.495). Removing diagnostic tokens at random degrades \default gradually, to 96.5\% of its value at 10\% removal and 64.8\% at 50\% (Figure~\ref{fig:app-tokenset}b). Random token sets matched in size and frequency give \default of 0.003--0.011 (SD 0.025--0.031, 1{,}000 draws); their 95th percentile is at most 0.059, against 0.55--0.60 with the real sets (Figure~\ref{fig:app-tokenset}c). Counting shared tokens as diagnostic would inflate \dM by at most 0.07.
 
 The score is comparable across tokenizers (D12; Table~\ref{tab:app-tokensets}). Target sets hold 4{,}360--5{,}210 tokens and English sets 4{,}790--5{,}480, and $V_{\mathrm{tgt}}$ covers 92.6--96.7\% of FLORES target-language tokens per model (89.7--98.1\% across the 24 pairs). GlotLID and fastText agree on 91.8--95.1\% of response prefixes. Calibration maps transferred between models raise the expected calibration error from 0.060 to 0.091 on average (Table~\ref{tab:app-calibration}), so probability readings of \dM use each model's own map, while rankings and differences can be compared across models.
 
-\dM is insensitive to decoding and chat template (D14). Sampling at temperature 0.7 shifts mean \dM by $-0.011$ to $+0.026$, and the three template variants (no system turn, a minimal template, two prior turns) by $-0.039$ to $+0.052$; the minimal template moves it most. All shifts are below a tenth of the change of about 0.58 that \foxp produces in mean \dM.
+The macro \dM results are comparatively stable across decoding and templates (D14), but behavioral realization is more sensitive. Sampling at temperature 0.7 shifts mean \dM by $-0.011$ to $+0.026$, and the three template variants (no system turn, a minimal template, two prior turns) by $-0.039$ to $+0.052$, so some model-level \dM estimates shift; the minimal template moves them most and reduces the \foxp full-response target rate by 7.1 points (Table~\ref{tab:app-template}).
 
 \begin{figure*}[!htbp]
   \centering
   \figslot{\textwidth}{4.4cm}{Figures/revision/fig_app_tokenset.pdf}{%
   Three panels. (a) Macro \textsc{Default} gain of \foxp under four token-set constructions, point and CI per model. (b) Gain retained vs share of diagnostic tokens removed (0--50\%), line per model. (c) Distribution of $\Delta M$ computed with random matched token sets (null) vs real sets.}
-  \caption{\textbf{D10--D11: token-set robustness and random-set null.} (a) \foxp \default gain per model under four token-set constructions; bars mark the mean over models. (b) Share of the gain retained when diagnostic tokens are removed at random (10 draws per rate). (c) Real gain (coloured) against the random-set null: mean $\pm$ SD and 95th percentile over 1{,}000 matched random sets.}
+  \caption{\textbf{D10--D11: token-set robustness and random-set null.} (a) \default of \foxp outputs (absolute score, not a gain) per model under four token-set constructions; bars mark the mean over models. (b) Share of \default retained when diagnostic tokens are removed at random (10 draws per rate). (c) \default with the real sets (coloured) against the random-set null: mean $\pm$ SD and 95th percentile over 1{,}000 matched random sets.}
   \label{fig:app-tokenset}
 \end{figure*}
 
@@ -660,7 +659,7 @@ The score is comparable across tokenizers (D12; Table~\ref{tab:app-tokensets}). 
   \setlength{\tabcolsep}{3pt}
   \begin{tabular}{@{}l cccc cccc cc@{}}
     \toprule
-    & \multicolumn{4}{c}{\textbf{D12: token sets}} & \multicolumn{4}{c}{\textbf{D10: \default gain}} & \multicolumn{2}{c}{\textbf{D14: \dM shift}} \\
+    & \multicolumn{4}{c}{\textbf{D12: token sets}} & \multicolumn{4}{c}{\textbf{D10: \default}} & \multicolumn{2}{c}{\textbf{D14: \dM shift}} \\
     \cmidrule(lr){2-5}\cmidrule(lr){6-9}\cmidrule(l){10-11}
     \textbf{Model} & $|V_{\mathrm{tgt}}|$ & $|V_{\mathrm{en}}|$ & Cov.\% & Agr.\% & Script & Diag. & Transl. & Freq. & Sampl. & Templ. \\
     \midrule
@@ -670,7 +669,7 @@ The score is comparable across tokenizers (D12; Table~\ref{tab:app-tokensets}). 
     Qwen3-8B              & 5{,}060 & 5{,}320 & 94.9 & 94.6 & 0.53 & 0.58 & 0.59 & 0.56 & $+0.014$ & $-0.019$ \\
     \bottomrule
   \end{tabular}
-  \caption{\textbf{D10, D12, D14: token sets, construction sensitivity and decoding/template sensitivity.} Token-set statistics are macro over languages. Cov.\%: share of FLORES target-language tokens in $V_{\mathrm{tgt}}$. Agr.\%: agreement between GlotLID and fastText on response prefixes. D10 columns give the \foxp \default gain under the script-only, diagnostic, transliteration-aware and frequency-threshold constructions. D14 columns give the mean change in \dM against greedy decoding with the default template (Templ.: mean over three template variants).}
+  \caption{\textbf{D10, D12, D14: token sets, construction sensitivity and decoding/template sensitivity.} Token-set statistics are macro over languages. Cov.\%: share of FLORES target-language tokens in $V_{\mathrm{tgt}}$. Agr.\%: agreement between GlotLID and fastText on response prefixes. D10 columns give the absolute \default of \foxp outputs under the script-only, diagnostic, transliteration-aware and frequency-threshold constructions. D14 columns give the mean change in \dM against greedy decoding with the default template (Templ.: mean over three template variants).}
   \label{tab:app-tokensets}
 \end{table*}
 
@@ -709,7 +708,7 @@ We collect all \Deval prompts on which the sign of \dM and the full-response lab
 \subsection{Commitment to the first tokens}
 \label{app:commitment}
 
-Figure~\ref{fig:commitment} forces the first $t$ tokens of the response into the target language, taken from a reference translation of the model's own English answer, and then lets the model continue freely. Forcing the opening tokens into the target language makes the response much more likely to stay there. Averaged over models, $P(\text{stay})$ rises from .246 with no forced tokens to .773 at $t{=}3$, the horizon selected for \dM, and by only a further .093 to .866 at $t{=}10$. Gemma-2-2B-it, the model with the strongest English default, is the least persistent at every $t$ (.154 at $t{=}0$, .696 at $t{=}3$). The same persistence holds for English: with three tokens forced into English, responses stay in English to the end with probability .973 ($n{=}100$). The result does not depend on the reference translation, since prefixes from two other translation systems give .850 and .840 (\res{$t$ and model}; $n{=}100$ each). A response that starts in a language tends to stay in it. This shows that an early choice persists, not why models choose English in the first place.
+Figure~\ref{fig:commitment} forces the first $t$ tokens of the response into the target language, taken from a reference translation of the model's own English answer, and then lets the model continue freely. Forcing the opening tokens into the target language makes the response much more likely to stay there. Averaged over models, the share of responses that stay in the target language rises from 1.9\% with no forced target-language tokens (by definition, the unedited full-response rate) to 77.3\% after forcing three tokens, the horizon selected for the score, and by only a further 9.3 points to 86.6\% at $t{=}10$. Gemma-2-2B-it, the model with the strongest English default, is the least persistent at every $t\ge1$ (.432 at $t{=}1$, .696 at $t{=}3$). Per-model values at $t{=}0$ are being regenerated from Experiment~1. The opening tokens strongly influence language choice but do not determine it irreversibly: about 22.7\% of continuations leave the target language after a three-token forced opening. The same persistence holds for English: with three tokens forced into English, responses stay in English to the end with probability .973 ($n{=}100$). The result does not depend on the reference translation, since prefixes from two other translation systems give .850 and .840 (\res{$t$ and model}; $n{=}100$ each). A response that starts in a language tends to stay in it. This shows that an early choice persists, not why models choose English in the first place.
 
 \begin{figure}[!htbp]
   \centering
@@ -753,7 +752,7 @@ Table~\ref{tab:languages} gives the full-response target rate of every method by
 
 Table~\ref{tab:app-baseline} gives the unedited behavior behind Figure~\ref{fig:baseline}. Tables~\ref{tab:app-model-llama}--\ref{tab:app-model-qwen} expand the main comparison (Table~\ref{tab:main}) to every model and language, and Table~\ref{tab:app-c2} reports the language-neutral condition. The trade-off curves (Figure~\ref{fig:tradeoff}) and the leakage matrix (Figure~\ref{fig:leakage}) are discussed in Sections~\ref{subsec:main} and~\ref{subsec:languages}; Figures~\ref{fig:app-tradeoff-lang}--\ref{fig:app-horizon} break them down by language and model and show persistence over the response.
 
-\paragraph{Persistence over the response.} Re-scoring each \foxp response at increasing prefix lengths (Figure~\ref{fig:app-horizon}), the target-language rate rises from 49.8\% at one token to a peak of 74.6\% at three tokens, the horizon of \dM, and then declines steadily to 58.7\% over the full response. A drop of 15.9 points between the opening and the full response is the main gap between the early score and the final outcome; it comes from responses that switch away after starting in the target language. Leakage grows from 0.010 at one token to 0.026 over the full response.
+\paragraph{Persistence over the response.} Re-scoring each \foxp response at increasing prefix lengths (Figure~\ref{fig:app-horizon}), the target-language rate rises from 49.8\% at one token to a peak of 74.6\% at three tokens, the horizon of \dM, and then declines steadily to 58.7\% over the full response. A drop of 15.9 points between the opening and the full response is the main gap between the early score and the final outcome; it comes from responses that switch away after starting in the target language. This is a different experiment from the forced-prefix commitment curve above. Leakage at each horizon is being recomputed under the revised definition.
 
 \begin{table*}[!htbp]
   \centering
@@ -784,27 +783,27 @@ Table~\ref{tab:app-baseline} gives the unedited behavior behind Figure~\ref{fig:
     \toprule
     \textbf{Model} & \textbf{Cond.} & $n$ & es & fr & zh & ru & hi & ar & English & Other \\
     \midrule
-    \multirow{2}{*}{Llama-3.1-8B-Instruct} & \nocue & 500 & 0.5 & 1.3 & 0.4 & 3.1 & 2.1 & 3.1 & 84.8 & 4.7 \\
+    \multirow{2}{*}{Llama-3.1-8B-Instruct} & \nocue & 500 & \res{?} & \res{?} & \res{?} & \res{?} & \res{?} & \res{?} & \res{?} & \res{?} \\
      & \neutral & 200 & 5.2 & 2.1 & 13.1 & 5.4 & 4.7 & 0.8 & 60.9 & 7.8 \\
     \addlinespace[2pt]
-    \multirow{2}{*}{Gemma-2-9B-it} & \nocue & 500 & 3.9 & 1.0 & 1.9 & 2.1 & 1.4 & 1.7 & 81.7 & 6.3 \\
+    \multirow{2}{*}{Gemma-2-9B-it} & \nocue & 500 & \res{?} & \res{?} & \res{?} & \res{?} & \res{?} & \res{?} & \res{?} & \res{?} \\
      & \neutral & 200 & 2.5 & 3.9 & 10.4 & 3.5 & 3.8 & 0.9 & 69.7 & 5.3 \\
     \addlinespace[2pt]
-    \multirow{2}{*}{Gemma-2-2B-it} & \nocue & 500 & 1.0 & 2.1 & 1.1 & 0.1 & 0.9 & 0.0 & 89.1 & 5.7 \\
+    \multirow{2}{*}{Gemma-2-2B-it} & \nocue & 500 & \res{?} & \res{?} & \res{?} & \res{?} & \res{?} & \res{?} & \res{?} & \res{?} \\
      & \neutral & 200 & 1.2 & 0.3 & 0.1 & 1.8 & 8.7 & 0.7 & 80.0 & 7.2 \\
     \addlinespace[2pt]
-    \multirow{2}{*}{Qwen3-8B} & \nocue & 500 & 0.9 & 3.9 & 0.2 & 0.1 & 1.6 & 2.9 & 84.7 & 5.7 \\
+    \multirow{2}{*}{Qwen3-8B} & \nocue & 500 & \res{?} & \res{?} & \res{?} & \res{?} & \res{?} & \res{?} & \res{?} & \res{?} \\
      & \neutral & 200 & 5.3 & 3.0 & 17.3 & 1.5 & 1.0 & 7.1 & 57.9 & 6.9 \\
     \bottomrule
   \end{tabular}
-  \caption{\textbf{Unedited models} (data for Figure~\ref{fig:baseline}). (a) Mean \dM for each model, prompt condition and target language; negative values mean more early probability mass on English than on the target language. (b) Share of responses whose full response is identified as each language; rows sum to 100. The column for language $\ell$ is the full-response target rate when $\ell$ is the target. $n$: prompts per condition.}
+  \caption{\textbf{Unedited models} (data for Figure~\ref{fig:baseline}). (a) Mean \dM for each model, prompt condition and target language; negative values mean more early probability mass on English than on the target language. (b) Share of responses whose full response is identified as each language; rows sum to 100. The column for language $\ell$ is the full-response target rate when $\ell$ is the target. $n$: prompts per condition. The \nocue rows are being regenerated from Experiment~1; macro over models, the \nocue target rates are 1.6 (es), 1.9 (fr), 2.2 (zh), 1.8 (ru), 2.4 (hi) and 1.7\% (ar), macro 1.9\% (Table~\ref{tab:languages}).}
   \label{tab:app-baseline}
 \end{table*}
 
 \begin{figure}[!htbp]
   \centering
   \figslot{\linewidth}{4.6cm}{Figures/revision/fig_baseline_heatmap.pdf}{Unedited models heatmap.}
-  \caption{\textbf{Unedited models default to English.} Cell colour is mean \dM (red: more early mass on English); cell numbers are the full-response rate (\%) for each model and target language, under \nocue and \neutral prompts.}
+  \caption{\textbf{Unedited models default to English.} Cell colour is mean \dM (red: more early mass on English); cell numbers are the full-response rate (\%) for each model and target language under \neutral prompts. \nocue cell rates are omitted until they are regenerated (Table~\ref{tab:app-baseline}).}
   \label{fig:baseline}
 \end{figure}
 
@@ -852,7 +851,7 @@ Table~\ref{tab:app-baseline} gives the unedited behavior behind Figure~\ref{fig:
     \cmidrule(lr){2-5}\cmidrule(lr){6-9}
     \textbf{Method} & L-8B & G-9B & G-2B & Q-8B & L-8B & G-9B & G-2B & Q-8B & \textbf{Macro} \\
     \midrule
-    No edit            & & & & & & & & &  \\
+    No edit            & & & & & & & & & 1.6 \\
     Short instruction  & & & & & & & & & 18.4 \\
     Best prompt        & & & & & & & & & 29.6 \\
     System prompt      & & & & & & & & & 27.8 \\
@@ -872,19 +871,19 @@ Table~\ref{tab:app-baseline} gives the unedited behavior behind Figure~\ref{fig:
 \begin{table}[!htbp]
   \centering
   \footnotesize
-  \begin{tabular}{@{}lcc@{}}
+  \begin{tabular}{@{}lccc@{}}
     \toprule
-    & \textbf{Full resp.\ \%} & \textbf{Curve} \\
-    \textbf{Method} & \textbf{at matched KL} & \textbf{area} \\
+    & \textbf{Matched KL} & \textbf{Macro curve} & \textbf{Curve} \\
+    \textbf{Method} & \textbf{(per pair)} & \textbf{at KL .073} & \textbf{area} \\
     \midrule
-    Difference-in-means & 40.8 & .36 \\
-    DiM + projection    & 44.7 & .39 \\
-    LAPE neurons        & 39.3 & .34 \\
-    SAE features        & 42.6 & .37 \\
-    \foxp               & \textbf{58.7} & \textbf{.46} \\
+    Difference-in-means & 40.8 & 38.2 & .36 \\
+    DiM + projection    & 44.7 & 42.2 & .39 \\
+    LAPE neurons        & 39.3 & 37.9 & .34 \\
+    SAE features        & 42.6 & 38.0 & .37 \\
+    \foxp               & \textbf{58.7} & \textbf{58.7} & \textbf{.46} \\
     \bottomrule
   \end{tabular}
-  \caption{\textbf{Matched-shift comparison}: full-response target rate (\%) of each steering method at the KL drift of the \foxp operating point, macro over 24 pairs (\nocue, \Deval). Curve area: normalized area under the full-response rate--KL curve of Figure~\ref{fig:tradeoff}a. \res{State how strengths are matched (per pair or on the macro curve), the interpolation used, and the normalization of the area.}}
+  \caption{\textbf{Matched-shift comparison}: full-response target rate (\%) of each steering method at the KL drift of the \foxp operating point, macro over 24 pairs (\nocue, \Deval). Curve area: normalized area under the full-response rate--KL curve of Figure~\ref{fig:tradeoff}a. Strengths are matched per pair: each method's curve is interpolated at that pair's \foxp KL, and the 24 interpolated rates are then macro-averaged. Macro curve: rate read from the macro-averaged curves at a common KL of 0.073, a different procedure that gives lower values. \res{Normalization of the curve area.}}
   \label{tab:app-matched}
 \end{table}
 
@@ -910,7 +909,7 @@ Table~\ref{tab:app-baseline} gives the unedited behavior behind Figure~\ref{fig:
   \centering
   \figslot{\textwidth}{4.4cm}{Figures/revision/fig_app_horizon.pdf}{%
   One panel per model. x = horizon (1, 2, 3, 5, 10, 25, 50, 100 tokens, full response); y = \textsc{Default} measured at that horizon. One line per method; 95\% CI bands.}
-  \caption{\textbf{Persistence over the response} for \foxp, macro over 24 pairs. (a) Share of responses whose prefix of the given length is in the target language. (b) Leakage measured at the same horizons. The full-response points equal Table~\ref{tab:main}.}
+  \caption{\textbf{Persistence over the response} for \foxp, macro over 24 pairs. Share of responses whose prefix of the given length is in the target language. The full-response point equals Table~\ref{tab:main}. Leakage by horizon is omitted until it is recomputed under the revised definition.}
   \label{fig:app-horizon}
 \end{figure*}
 
@@ -927,12 +926,12 @@ Table~\ref{tab:app-baseline} gives the unedited behavior behind Figure~\ref{fig:
     \toprule
     \textbf{Variant} & \textbf{\dM}$\uparrow$ & \textbf{Def.}$\uparrow$ & \textbf{$\Delta$} & \textbf{Leak.}$\downarrow$ & \textbf{KL}$\downarrow$ \\
     \midrule
-    Full \foxp & $0.038$ & 58.7 & -- & .026 & .073 \\
+    Full \foxp & $0.038$ & 58.7 & -- & .0065 & .073 \\
     \midrule
     (a) No subspace & $0.021$ & 53.1 & $-5.6$ & .041 & .089 \\
     (b) No support & $0.012$ & 49.2 & $-9.5$ & .052 & .096 \\
-    (c) Promotion only & $0.019$ & 52.2 & $-6.5$ & .029 & .067 \\
-    (d) Suppression only & $-0.014$ & 34.1 & $-24.6$ & .044 & .081 \\
+    (c) Promotion only & $-0.014$ & 34.1 & $-24.6$ & \res{?} & .081 \\
+    (d) Suppression only & $0.019$ & 52.2 & $-6.5$ & \res{?} & .067 \\
     (e1) Earlier window & $0.006$ & 45.1 & $-13.6$ & .035 & .078 \\
     (e2) Later window & $0.011$ & 47.7 & $-11.0$ & .032 & .076 \\
     (f) Random support & $-0.022$ & 28.8 & $-29.9$ & .063 & .104 \\
@@ -941,7 +940,7 @@ Table~\ref{tab:app-baseline} gives the unedited behavior behind Figure~\ref{fig:
     (h2) Norm-matched & $-0.027$ & 24.6 & $-34.1$ & .055 & .073 \\
     \bottomrule
   \end{tabular}
-  \caption{\textbf{Ablations}, macro over 24 model--language pairs; each variant changes one element of \foxp. (a) Stage~I support without the subspace; (b) subspace computed over all features, without the support; (c) $\beta{=}0$; (d) $\lambda{=}0$; (e) window shifted; (f, g) random support or subspace of the same size and rank; (h) random edits in $\mathcal{W}$ matched in entropy change or norm. Def.: \default (\%); $\Delta$: change in \default (points).}
+  \caption{\textbf{Ablations}, macro over 24 model--language pairs; each variant changes one element of \foxp. (a) Stage~I support without the subspace; (b) subspace computed over all features, without the support; (c) promotion only, $\beta{=}0$; (d) suppression only, $\lambda{=}0$ (labels follow the implemented coefficient direction and agree with the $\beta/\lambda{=}0$ point of the sensitivity sweep); (e) window shifted; (f, g) random support or subspace of the same size and rank; (h) random edits in $\mathcal{W}$ matched in entropy change or norm. Def.: \default (\%); $\Delta$: change in \default (points); Leak.: as in Table~\ref{tab:main}, pending recomputation for the variants.}
   \label{tab:ablations}
 \end{table}
 
@@ -1045,13 +1044,13 @@ Table~\ref{tab:necessity} gives the necessity test of Section~\ref{subsec:necess
     \toprule
     \textbf{Projected out} & \textbf{Llama} & \textbf{G-9B} & \textbf{G-2B} & \textbf{Qwen} & \textbf{Avg.} \\
     \midrule
-    Nothing                              & 15.8 & 14.2 & 11.6 & 17.4 & 14.8 \\
+    Nothing                              & \res{?} & \res{?} & \res{?} & \res{?} & 15.7 \\
     $\mathcal{S}$ inside $\mathcal{W}$   & \textbf{8.7} & \textbf{7.9} & \textbf{7.1} & \textbf{9.5} & \textbf{8.3} \\
     Random, same rank                    & 14.0 & 12.8 & 10.4 & 15.2 & 13.1 \\
     $\mathcal{S}$ outside $\mathcal{W}$  & 13.2 & 12.1 & 10.1 & 14.3 & 12.4 \\
     \bottomrule
   \end{tabular}
-  \caption{\textbf{Necessity test.} Compliance (\%) with the explicit instruction ``Answer in \textit{X}.'' when a subspace is projected out of the unedited model, macro over six languages.}
+  \caption{\textbf{Necessity test.} Compliance (\%) with the explicit instruction ``Answer in \textit{X}.'' when a subspace is projected out of the unedited model, macro over six languages. The \emph{Nothing} average is the \nocue full-response rate of the short instruction (15.7\%, Table~\ref{tab:main}); its per-model values are being recomputed on the same prompts.}
   \label{tab:necessity}
 \end{table}
 
@@ -1063,9 +1062,9 @@ Table~\ref{tab:necessity} gives the necessity test of Section~\ref{subsec:necess
     \toprule
     \textbf{Ablation} & es & fr & zh & ru & hi & ar \\
     \midrule
-    None                                    & 17.1 & 16.4 & 13.8 & 14.5 & 13.2 & 13.8 \\
+    None                                    & \res{?} & \res{?} & \res{?} & \res{?} & \res{?} & \res{?} \\
     $\mathcal{S}$ in $\mathcal{W}$ & 9.5 & 9.2 & 7.9 & 8.0 & 7.4 & 7.8 \\
-    \quad change & $-7.6$ & $-7.2$ & $-5.9$ & $-6.5$ & $-5.8$ & $-6.0$ \\
+    \quad change & \res{?} & \res{?} & \res{?} & \res{?} & \res{?} & \res{?} \\
     Random, same rank & & & & & & \\
     $\mathcal{S}$ outside $\mathcal{W}$      & & & & & & \\
     English dir.$^{*}$ & & & & & & \\
@@ -1100,7 +1099,8 @@ Table~\ref{tab:necessity} gives the necessity test of Section~\ref{subsec:necess
 \section{Robustness and Sensitivity}
 \label{app:robustness}
 
-\paragraph{Sensitivity (Figure~\ref{fig:app-sensitivity}, Table~\ref{tab:app-sensitivity}).} Each hyperparameter is varied alone around the operating point on \Ddev, with $\beta$ and $\lambda$ swept as one ratio. \default stays within 0.05 of its operating value for $K$ from 32 to 256, $r$ from 4 to 16, $\beta/\lambda$ from 1 to 2, $\gamma$ from 1 to 3 times its tuned value and window widths from 2 layers narrower to 4 layers wider than tuned. Larger settings buy little \default and cost leakage, KL drift and utility: doubling $K$ to 128 adds 0.007 \default but raises leakage from 0.026 to 0.034 and the utility loss from 0.28 to 0.46 points, and tripling $\gamma$ adds 0.045 but raises leakage to 0.091 and costs 1.42 points. Smaller settings cost \default quickly. \res{Promotion alone gives 0.348 here ($\beta/\lambda=0$) but 0.522 in ablation (c) of Table~\ref{tab:ablations}; reconcile.} \res{\default at $\gamma=0$ must equal the unedited model's \default; the sweep gives 0.214.}
+\paragraph{Sensitivity (Figure~\ref{fig:app-sensitivity}, Table~\ref{tab:app-sensitivity}).} Each hyperparameter is varied alone around the operating point on \Ddev, with $\beta$ and $\lambda$ swept as one ratio. \default stays within 0.05 of its operating value for $K$ from 32 to 256, $r$ from 4 to 16 and window widths from 2 layers narrower to 4 layers wider than tuned; the guardrail-feasible ranges are $\beta/\lambda$ from 0.5 to 2 and $\gamma$ from 0.5 to 1.5 times its tuned value. Larger settings buy little \default and cost KL drift and utility: doubling $K$ to 128 adds 0.007 \default but raises the utility loss from 0.28 to 0.46 points, and tripling $\gamma$ adds 0.045 but costs 1.42 points. Smaller settings cost \default quickly. The ratio follows the implemented coefficient direction ($\beta=\text{ratio}\cdot\lambda$), so $\beta/\lambda=0$ is the promotion-only edit; its \default of 0.348 agrees with the promotion-only ablation (0.341, Table~\ref{tab:ablations}). At $\gamma=0$ the hook reproduces the unedited model, so the unedited \default on \Ddev is 0.214. Leakage is omitted until it is recomputed under the revised definition (Appendix~\ref{app:metrics}).
+\finding{A9: the operating-point rows of Table~\ref{tab:app-sensitivity} are on \Ddev and must equal the \Ddev \foxp result; they currently coincide with the \Deval values (0.587, KL 0.073, $\Delta S$ $-0.28$). Regenerate them from the \Ddev run.}
 
 \paragraph{Discovery data (Figure~\ref{fig:app-sample-efficiency}).} Rebuilding the artifacts from subsets of the 300 discovery pairs retains 68.4\% of the full gain with 25 pairs, 81.7\% with 50, 91.6\% with 100 and 97.2\% with 200. The Stage~I support converges with the gain: its Jaccard overlap with the full-data support rises from 0.41 to 0.84, and the mean principal angle to the full-data subspace falls from 31.2$^\circ$ to 8.1$^\circ$. Llama-3.1-8B-Instruct and Qwen3-8B need the fewest pairs.
 
@@ -1114,7 +1114,7 @@ Table~\ref{tab:necessity} gives the necessity test of Section~\ref{subsec:necess
   \centering
   \figslot{\textwidth}{4.4cm}{Figures/revision/fig_app_sensitivity.pdf}{%
   Six small panels: $K$, $r$, $\lambda$, $\beta$, $\gamma$, window width. x = parameter value; y-left = \textsc{Default}, y-right = leakage. One line per model; operating point marked with a vertical line.}
-  \caption{\textbf{Sensitivity} to each hyperparameter around the operating point, on \Ddev, macro over 24 pairs: \default (top) and leakage (bottom). $\beta$ and $\lambda$ are swept as one ratio $\beta/\lambda$; $\gamma$ is a multiple of each pair's tuned value; window width is relative to the tuned width. Dotted line: operating point; shaded band: \default within 0.05 of it.}
+  \caption{\textbf{Sensitivity} to each hyperparameter around the operating point, on \Ddev, macro over 24 pairs: \default (leakage pending recomputation under the revised definition). $\beta$ and $\lambda$ are swept as one ratio $\beta/\lambda$; $\gamma$ is a multiple of each pair's tuned value; window width is relative to the tuned width. Dotted line: operating point; shaded band: \default within 0.05 of it.}
   \label{fig:app-sensitivity}
 \end{figure*}
 
@@ -1130,45 +1130,45 @@ Table~\ref{tab:necessity} gives the necessity test of Section~\ref{subsec:necess
   \centering
   \footnotesize
   \setlength{\tabcolsep}{3.5pt}
-  \begin{tabular}{@{}llcccc@{}}
+  \begin{tabular}{@{}llccc@{}}
     \toprule
-    \textbf{Param.} & \textbf{Value} & \textbf{Def.}$\uparrow$ & \textbf{Leak.}$\downarrow$ & \textbf{KL}$\downarrow$ & \textbf{$\Delta S$} \\
+    \textbf{Param.} & \textbf{Value} & \textbf{Def.}$\uparrow$ & \textbf{KL}$\downarrow$ & \textbf{$\Delta S$} \\
     \midrule
-    $K$ & 8 & 0.421 & 0.011 & 0.024 & $-0.08$ \\
-     & 16 & 0.486 & 0.015 & 0.036 & $-0.13$ \\
-     & 32 & 0.548 & 0.021 & 0.054 & $-0.22$ \\
-     & \textbf{64} & 0.587 & 0.026 & 0.073 & $-0.28$ \\
-     & 128 & 0.594 & 0.034 & 0.096 & $-0.46$ \\
-     & 256 & 0.598 & 0.049 & 0.142 & $-0.83$ \\
+    $K$ & 8 & 0.421 & 0.024 & $-0.08$ \\
+     & 16 & 0.486 & 0.036 & $-0.13$ \\
+     & 32 & 0.548 & 0.054 & $-0.22$ \\
+     & \textbf{64} & 0.587 & 0.073 & $-0.28$ \\
+     & 128 & 0.594 & 0.096 & $-0.46$ \\
+     & 256 & 0.598 & 0.142 & $-0.83$ \\
     \midrule
-    $r$ & 1 & 0.438 & 0.014 & 0.031 & $-0.10$ \\
-     & 2 & 0.507 & 0.018 & 0.045 & $-0.16$ \\
-     & 4 & 0.563 & 0.023 & 0.062 & $-0.23$ \\
-     & \textbf{8} & 0.587 & 0.026 & 0.073 & $-0.28$ \\
-     & 16 & 0.592 & 0.041 & 0.118 & $-0.61$ \\
+    $r$ & 1 & 0.438 & 0.031 & $-0.10$ \\
+     & 2 & 0.507 & 0.045 & $-0.16$ \\
+     & 4 & 0.563 & 0.062 & $-0.23$ \\
+     & \textbf{8} & 0.587 & 0.073 & $-0.28$ \\
+     & 16 & 0.592 & 0.118 & $-0.61$ \\
     \midrule
-    $\beta/\lambda$ & 0 & 0.348 & 0.008 & 0.019 & $-0.04$ \\
-     & 0.25 & 0.431 & 0.012 & 0.031 & $-0.09$ \\
-     & 0.5 & 0.516 & 0.018 & 0.048 & $-0.17$ \\
-     & \textbf{1} & 0.587 & 0.026 & 0.073 & $-0.28$ \\
-     & 2 & 0.603 & 0.044 & 0.127 & $-0.69$ \\
+    $\beta/\lambda$ & 0 & 0.348 & 0.019 & $-0.04$ \\
+     & 0.25 & 0.431 & 0.031 & $-0.09$ \\
+     & 0.5 & 0.516 & 0.048 & $-0.17$ \\
+     & \textbf{1} & 0.587 & 0.073 & $-0.28$ \\
+     & 2 & 0.603 & 0.127 & $-0.69$ \\
     \midrule
-    $\gamma$ multiple & 0 & 0.214 & 0.000 & 0.000 & 0.00 \\
-     & 0.25 & 0.359 & 0.006 & 0.013 & $-0.03$ \\
-     & 0.5 & 0.482 & 0.014 & 0.034 & $-0.12$ \\
-     & \textbf{1} & 0.587 & 0.026 & 0.073 & $-0.28$ \\
-     & 1.5 & 0.614 & 0.039 & 0.119 & $-0.55$ \\
-     & 2 & 0.625 & 0.058 & 0.174 & $-0.91$ \\
-     & 3 & 0.632 & 0.091 & 0.267 & $-1.42$ \\
+    $\gamma$ multiple & 0 & 0.214 & 0.000 & 0.00 \\
+     & 0.25 & 0.359 & 0.013 & $-0.03$ \\
+     & 0.5 & 0.482 & 0.034 & $-0.12$ \\
+     & \textbf{1} & 0.587 & 0.073 & $-0.28$ \\
+     & 1.5 & 0.614 & 0.119 & $-0.55$ \\
+     & 2 & 0.625 & 0.174 & $-0.91$ \\
+     & 3 & 0.632 & 0.267 & $-1.42$ \\
     \midrule
-    Width ($\pm$ layers) & $-$4 & 0.526 & 0.017 & 0.043 & $-0.16$ \\
-     & $-$2 & 0.563 & 0.022 & 0.059 & $-0.22$ \\
-     & \textbf{tuned} & 0.587 & 0.026 & 0.073 & $-0.28$ \\
-     & +2 & 0.591 & 0.033 & 0.091 & $-0.39$ \\
-     & +4 & 0.586 & 0.045 & 0.126 & $-0.63$ \\
+    Width ($\pm$ layers) & $-$4 & 0.526 & 0.043 & $-0.16$ \\
+     & $-$2 & 0.563 & 0.059 & $-0.22$ \\
+     & \textbf{tuned} & 0.587 & 0.073 & $-0.28$ \\
+     & +2 & 0.591 & 0.091 & $-0.39$ \\
+     & +4 & 0.586 & 0.126 & $-0.63$ \\
     \bottomrule
   \end{tabular}
-  \caption{\textbf{Sensitivity values} behind Figure~\ref{fig:app-sensitivity}, macro over 24 pairs on \Ddev; operating point in bold. Def.: \default; KL in nats; $\Delta S$ in points.}
+  \caption{\textbf{Sensitivity values} behind Figure~\ref{fig:app-sensitivity}, macro over 24 pairs on \Ddev; operating point in bold. Def.: \default; KL in nats; $\Delta S$ in points. Leakage is omitted pending recomputation under the revised definition. At $\gamma=0$ the hook is exact, so that row is the unedited model on \Ddev ($\default=0.214$).}
   \label{tab:app-sensitivity}
 \end{table}
 
@@ -1356,7 +1356,8 @@ Table~\ref{tab:utility} summarizes the utility change of every method by task, a
   \label{tab:app-utility}
 \end{table*}
 
-Averaged over tasks, \foxp changes target-language tasks by $-0.08$ points (95\% CI [$-0.25$, $+0.10$]), English-input tasks by $-0.70$ ([$-0.94$, $-0.46$]) and all six benchmarks by $-0.28$ ([$-0.42$, $-0.14$]). Four of the 144 task--pair combinations exceed $\epsilon_{\mathrm{util}}$, and no task does so on average. Table~\ref{tab:app-utility-model} breaks the change down by model; Gemma-2-2B-it has the largest cost.
+Averaged over tasks, \foxp changes target-language tasks by $-0.08$ points (95\% CI [$-0.25$, $+0.10$]), English-input tasks by $-0.57$ (\res{95\% CI}) and all six benchmarks by $-0.28$ ([$-0.42$, $-0.14$]); the overall change is the predeclared mean of the six benchmark-level changes, not the average of the two group summaries.
+\finding{B17/B5: the \foxp MMLU and GSM8K rows of Table~\ref{tab:utility} average $-0.70$, while the per-model English-task values average $-0.57$; regenerate both from the benchmark-level outputs and confirm that $\Delta S=-0.28$ is their six-benchmark mean.} Four of the 144 task--pair combinations exceed $\epsilon_{\mathrm{util}}$, and no task does so on average. Table~\ref{tab:app-utility-model} breaks the change down by model; Gemma-2-2B-it has the largest cost.
 
 \begin{table}[!htbp]
   \centering
@@ -1366,10 +1367,10 @@ Averaged over tasks, \foxp changes target-language tasks by $-0.08$ points (95\%
     \toprule
     \textbf{Model} & \textbf{Target-lang.} & \textbf{English} & \textbf{Overall $\Delta S$} \\
     \midrule
-    Llama-3.1-8B & $+0.02$ & $-0.38$ & $-0.18$ \\
+    Llama-3.1-8B & $+0.02$ & $-0.38$ & \res{?} \\
     Gemma-2-9B & $-0.12$ & $-0.48$ & $-0.24$ \\
     Gemma-2-2B & $-0.19$ & $-0.85$ & $-0.41$ \\
-    Qwen3-8B & $-0.01$ & $-0.57$ & $-0.29$ \\
+    Qwen3-8B & $-0.01$ & $-0.57$ & \res{?} \\
     \bottomrule
   \end{tabular}
   \caption{\textbf{Utility change of \foxp by model} (points), macro over languages: target-language tasks (XNLI, Belebele, XL-Sum, FLORES), English-input tasks (MMLU, GSM8K) and all six.}
@@ -1438,13 +1439,13 @@ On \intent prompts we measure how often a method preserves an explicitly request
     \foxp                & \textbf{60.7} & 3.89 & 3.78 & 3.63 & \textbf{43} \\
     \bottomrule
   \end{tabular}
-  \caption{\textbf{Human evaluation}, macro over 24 pairs. Blind native-speaker ratings of 100 prompts per pair, each rated by 2--3 annotators: responses judged fully in the target language (Lang.\%), fluency, adequacy and naturalness (1--5), and the share of items on which the output was chosen as the best of the three (Win\%).}
+  \caption{\textbf{Human evaluation}, macro over 24 pairs. Blind native-speaker ratings of 100 prompts per pair, each item received two or three independent ratings from native speakers of the target language: responses judged fully in the target language (Lang.\%), fluency, adequacy and naturalness (1--5), and the share of items on which the output was chosen as the best of the three (Win\%).}
   \label{tab:human}
 \end{table}
 
 
 \paragraph{Protocol.}
-For each of the 24 model--language pairs, 100 \nocue prompts were sampled from \Deval with a fixed seed. Each item shows the prompt and the outputs of the best prompt, difference-in-means and \foxp in random order without method labels. Annotators rate each output for language correctness (is the whole response in the target language: yes, partly, no), fluency, adequacy (does it answer the request) and naturalness (would a native speaker write it this way), each on a 1--5 scale, and choose the best output. Each item is rated by \res{2--3} native speakers.
+For each of the 24 model--language pairs, 100 \nocue prompts were sampled from \Deval with a fixed seed. Each item shows the prompt and the outputs of the best prompt, difference-in-means and \foxp in random order without method labels. Annotators rate each output for language correctness (is the whole response in the target language: yes, partly, no), fluency, adequacy (does it answer the request) and naturalness (would a native speaker write it this way), each on a 1--5 scale, and choose the best output. Each item received two or three independent ratings from native speakers of the target language.
 
 \paragraph{Annotators.}
 \res{N} annotators (\res{per language}) were recruited through \res{platform}, paid \res{rate} per hour, and trained on \res{20} practice items with feedback. The full guidelines are released with the code.
@@ -1519,6 +1520,7 @@ All intervals are 95\% percentile bootstrap intervals \citep{efron1993introducti
     \toprule
     \textbf{Table} & \textbf{Comparison} & \textbf{Test} & \textbf{Statistic} & \textbf{$p$} & \textbf{Holm $p$} \\
     \midrule
+    \multicolumn{6}{@{}l}{\textit{Full-response family}} \\
     \ref{tab:main} & \foxp vs best prompt, full-response rate & paired permutation & & & \\
     \ref{tab:main} & \foxp vs system prompt, full-response rate & paired permutation & & & \\
     \ref{tab:main} & \foxp vs difference-in-means, full-response rate & paired permutation & & & \\
@@ -1526,7 +1528,11 @@ All intervals are 95\% percentile bootstrap intervals \citep{efron1993introducti
     \ref{tab:main} & \foxp vs SAE features, full-response rate & paired permutation & & & \\
     \ref{tab:main} & \foxp vs LoRA, full-response rate & paired permutation & & & \\
     \ref{tab:main} & \foxp + system prompt vs system prompt & paired permutation & & & \\
+    \multicolumn{6}{@{}l}{\textit{\default family}} \\
+    \ref{tab:main} & \foxp vs each baseline, \default & paired permutation & & & \\
+    \ref{tab:main} & \foxp + system prompt vs system prompt, \default & paired permutation & & & \\
     \ref{tab:ablations} & Full vs each variant, \default & paired permutation & & & \\
+    \multicolumn{6}{@{}l}{\textit{Other families}} \\
     \ref{tab:necessity} & $\mathcal{S}$ vs random subspace & paired permutation & & & \\
     \ref{tab:utility} & \foxp vs no edit, each task & paired permutation & & & \\
     \ref{tab:safety} & \foxp vs no edit, refusal & paired permutation & & & \\

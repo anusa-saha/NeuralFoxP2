@@ -56,7 +56,7 @@ ax_a.set_xticks(range(1, 11))
 ax_a.set_xlim(0.7, 10.3)
 ax_a.set_ylim(0.64, 0.90)
 ax_a.set_xlabel(r"horizon $k$ (decoding steps)", labelpad=1)
-ax_a.set_ylabel("AUC", labelpad=1)
+ax_a.set_ylabel("pooled AUC", labelpad=1)
 ax_a.legend(ncol=3, loc="lower left", bbox_to_anchor=(0.0, 1.0), columnspacing=0.9,
             handlelength=1.6, handletextpad=0.4)
 style(ax_a)
@@ -99,6 +99,8 @@ com = pd.read_csv(f"{data_dir}/e5a_commitment.csv")
 fig, ax = plt.subplots(figsize=(3.03, 1.55))
 for i, (m, lab) in enumerate(zip(MODELS, MODEL_LABEL)):
     ax.plot(com.t, com[m], color=SLOT[i], marker=MARK[i], ms=3, label=lab)
+# t=0 equals the Experiment 1 full-response rate (protocol identity); per-model t=0 values pending
+ax.plot(com.t, com["macro"], color="#0b0b0b", ls="--", lw=1.0, marker="x", ms=3, label="mean", zorder=4)
 ax.axvline(3, color="#52514e", lw=0.6, ls=":")
 ax.text(3.15, 0.93, r"selected $k{=}3$", fontsize=5.6, color="#52514e")
 ax.set_xticks([0, 1, 2, 3, 5, 10])

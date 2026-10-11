@@ -29,8 +29,12 @@ s = pd.read_csv(f"{data_dir}/e31_sensitivity.csv")
 params = [("K", r"features per layer $K$", True), ("r", r"subspace rank $r$", True),
           ("ratio", r"$\beta/\lambda$", False), ("gamma", r"strength multiple of $\gamma$", False),
           ("width", r"window width ($\pm$ layers)", False)]
-rows = [("default", "DEFAULT", (0.15, 0.68)), ("leak", "leakage", (0, 0.10))]
-fig, axes = plt.subplots(2, 5, figsize=(6.3, 2.6), gridspec_kw={"wspace": 0.42, "hspace": 0.55})
+# Leakage is pending recomputation under the revised definition; plot it only when available.
+rows = [("default", "DEFAULT", (0.15, 0.68))]
+if s["leak"].notna().sum() > 2 * len(params):
+    rows.append(("leak", "leakage", (0, 0.10)))
+fig, axes = plt.subplots(len(rows), 5, figsize=(6.3, 1.45 * len(rows)), squeeze=False,
+                         gridspec_kw={"wspace": 0.42, "hspace": 0.55})
 for j, (p, xl, logx) in enumerate(params):
     g = s[s.param == p].sort_values("value")
     x = np.arange(len(g)) if p == "width" else g.value.values
@@ -57,7 +61,7 @@ for j, (p, xl, logx) in enumerate(params):
         ax.tick_params(labelsize=6)
         if j == 0:
             ax.set_ylabel(yl, labelpad=1)
-        if i == 1:
+        if i == len(rows) - 1:
             ax.set_xlabel(xl, labelpad=1, fontsize=6.5)
 fig.text(0.5, 0.995, "dotted line: operating point; shaded band: DEFAULT within 0.05 of it",
          ha="center", va="top", fontsize=6.3, color=INK2)

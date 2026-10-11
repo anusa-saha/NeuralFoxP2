@@ -36,7 +36,10 @@ for ax, cond in zip(axes, ["C1", "C2"]):
     ax.set_yticks([y - 0.5 for y in range(1, 4)], minor=True)
     ax.grid(which="minor", color="white", linewidth=1.2)
     ax.tick_params(which="both", length=0)
-    for i in range(M.shape[0]):
+    # The No-Cue (C1) per-cell full-response rates conflict with the canonical unedited rate
+    # (1.9%, Table 2) and are pending regeneration from Experiment 1; only colour is drawn for them.
+    show_rates = cond != "C1"
+    for i in range(M.shape[0] if show_rates else 0):
         for j in range(M.shape[1]):
             r, g, b = to_rgb(cmap(norm(M[i, j])))
             lum = 0.2126 * r + 0.7152 * g + 0.0722 * b

@@ -51,7 +51,7 @@ auc = pd.read_csv(f"{data_dir}/e2a_auc_by_k.csv")
 dev = pd.read_csv(f"{data_dir}/e2b_dev_selection.csv")
 com = pd.read_csv(f"{data_dir}/e5a_commitment.csv")
 per = pd.read_csv(f"{data_dir}/e30_horizon.csv")
-com["mean"] = com[MODELS].mean(axis=1)
+com["mean"] = com["macro"]  # t=0 is the Experiment 1 full-response rate; per-model t=0 pending
 per_num = per[per.horizon != "full"].copy()
 per_num["horizon"] = per_num.horizon.astype(int)
 
@@ -68,7 +68,7 @@ a.set_xticks([1, 2, 3, 5, 10])
 a.set_xlim(0.6, 10.4)
 a.set_ylim(0.65, 0.89)
 a.set_xlabel(r"horizon $k$ (decoding steps)", labelpad=1)
-a.set_ylabel("AUC, finished response", labelpad=1)
+a.set_ylabel("pooled AUC", labelpad=1)
 a.legend(loc="lower right", bbox_to_anchor=(1.0, 0.2), fontsize=5.2, handlelength=1.2, labelspacing=0.2,
          borderaxespad=0.1)
 a.set_title("(a) prediction", fontsize=6.5, loc="left", pad=2)
@@ -148,21 +148,22 @@ for i, (m, lab) in enumerate(zip(MODELS, MODEL_LABEL)):
     a.plot(mid, per_tok, color=SLOT[i], marker=MARK[i], ms=2.6, lw=1.0, label=lab)
 a.plot(mid, np.diff(com["mean"].values) / np.diff(ts), color="#0b0b0b", lw=1.5, ls="--", label="mean", zorder=3)
 a.axvline(3, color=INK2, lw=0.6, ls=":")
-a.text(3.15, 0.27, r"$t{=}3$", fontsize=5.6, color=INK2)
+a.text(3.15, 0.46, r"$t{=}3$", fontsize=5.6, color=INK2)
 a.set_xticks(mid, ["0→1", "1→2", "2→3", "3→5", "5→10"])
-a.set_ylim(0, 0.31)
+a.set_ylim(0, 0.52)
 a.set_xlabel("interval of forced tokens", labelpad=1)
 a.set_ylabel(r"gain in $P$(stay) per forced token", labelpad=1)
 a.legend(loc="upper right", fontsize=5.4, ncol=1, handlelength=1.3, labelspacing=0.25)
 a.set_title("(a) diminishing returns of each forced token", fontsize=6.5, loc="left", pad=2)
 style(a)
 
-for i, (m, lab) in enumerate(zip(MODELS, MODEL_LABEL)):
-    v = com[m].values
-    share = (v - v[0]) / (v[-1] - v[0])
-    s3 = share[list(ts).index(3)] * 100
-    b.plot(ts, share * 100, color=SLOT[i], marker=MARK[i], ms=2.6, lw=1.0,
-           label=f"{lab}: {s3:.0f}% by $t{{=}}3$")
+# Per-model t=0 values are pending (they must equal each model's Experiment 1 rate), so only the
+# mean curve, anchored at the protocol identity t=0 = 0.019, is shown as a share of its t=10 value.
+v = com["mean"].values
+share = (v - v[0]) / (v[-1] - v[0])
+s3 = share[list(ts).index(3)] * 100
+b.plot(ts, share * 100, color="#0b0b0b", marker="o", ms=2.8, lw=1.4, label="mean over models")
+b.text(3.3, s3 - 6, f"{s3:.0f}% by $t{{=}}3$", fontsize=5.8, color="#0b0b0b", va="top")
 b.axvline(3, color=INK2, lw=0.6, ls=":")
 b.set_xticks([0, 1, 2, 3, 5, 10])
 b.set_xlim(-0.4, 10.4)
@@ -170,7 +171,7 @@ b.set_ylim(0, 105)
 b.set_xlabel(r"forced target-language tokens $t$", labelpad=1)
 b.set_ylabel(r"share of the $t{=}0\rightarrow10$ gain (%)", labelpad=1)
 b.legend(loc="lower right", fontsize=5.4, handlelength=1.3, labelspacing=0.25)
-b.set_title(r"(b) most of the commitment is in place after three tokens", fontsize=6.5, loc="left", pad=2)
+b.set_title(r"(b) most of the commitment is in place after three tokens (mean)", fontsize=6.5, loc="left", pad=2)
 style(b)
 save(fig, "fig_app_horizon_commitment")
 

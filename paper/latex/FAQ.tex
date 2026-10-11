@@ -1,0 +1,980 @@
+\section{Frequently Asked Questions (FAQs)}
+\label{sec:FAQs}
+
+
+\section*{A. Construct Validity: What Does “Defaultness” Measure?}
+
+\begin{itemize}[leftmargin=1.5em]
+
+\item[\ding{93}] \textbf{Is FOXP2 merely a script steerer (Devanagari vs.\ Latin) rather than a language steerer?}
+
+\begin{description}
+\item[\ding{224}]
+\textbf{No, the “script-only” hypothesis makes a falsifiable prediction that our results violate.}
+If FOXP2 were primarily detecting \emph{script} (e.g., pushing Devanagari tokens) rather than \emph{language}, then it should \emph{fail} to produce a comparable defaultness shift for a \textbf{Latin-script target} or would collapse into generic Latin-character bias indistinguishable from English.
+
+\item[\ding{224}]
+\textbf{Spanish is a direct counterexample.}
+We replicate the full FOXP2 pipeline for \textbf{Spanish}, which shares \textbf{the same Latin script as English}, yet we still observe a substantial increase in Spanish defaultness under the same mechanistic recipe (localize $\to$ directions $\to$ steer) and under the same regression/utility guardrails.
+Because \(\mathbf{e}_{\mathrm{Es}}\) and \(\mathbf{e}_{\mathrm{En}}\) live in the \emph{same script family}, the improvement cannot be explained by “switching scripts.”
+
+\item[\ding{224}]
+\textbf{Our steering vectors are defined relative to English prototypes, not script classes.}
+FOXP2 steers along language-difference axes
+\(\mathbf{v}_{\ell}=\mathbf{e}_{\ell}-\mathbf{e}_{\mathrm{En}}\),
+so a script-only mechanism would predict strong gains only when \(\ell\) differs in script from English.
+The observed Spanish gains contradict that prediction: FOXP2 separates \(\mathrm{Es}\) from \(\mathrm{En}\) \emph{within the same script}, indicating genuine language-specific control.
+
+\item[\ding{224}]
+\textbf{Additional sanity checks reduce residual script confounds.}
+We report robustness to alternative token-set definitions (including transliteration-aware variants) and quantify shared-token inflation, showing that improvements persist even when “easy script cues” are weakened.
+Moreover, FOXP2 preserves task utility and meaning under a KL trust region, which is inconsistent with a trivial character-level bias that would typically destabilize content.
+
+\end{description}
+
+
+\item[\ding{93}] \textbf{Is $\Delta M$ measuring language defaultness or just \emph{script} defaultness at the subword level? How do you rule out that the metric is primarily a script detector?}
+\begin{description}
+\item[\ding{224}] \textbf{We address this head-on by \emph{design}: we intentionally chose \textbf{two languages} that sit on opposite sides of the script confound.} Hindi is \textbf{script-centric} (Devanagari tokens are visually and lexically distinctive), whereas Spanish is \textbf{Latin script}, sharing the same script as English. This choice turns “script detection” from a vague concern into a \textbf{testable hypothesis}: \emph{if $\Delta M$ is primarily a script detector, then the method should succeed on Hindi but fail on Spanish.} It does not.
+
+\vspace{4pt}
+\textbf{Metric and confound.} We measure early-step mass shift
+\[
+\begin{aligned}
+M^{\ell}(x,t) &= \sum_{u\in V_{\ell}}p_\theta(u\mid \mathrm{ctx}_t),\\
+\Delta M(x,t) &= M^{\ell_t}(x,t)-M^{\mathrm{en}}(x,t).
+\end{aligned}
+\]
+with a language token-set $V_\ell$. The concern is that for Hindi, $V_{\mathrm{hi}}$ could be “mostly Devanagari,” so $\Delta M$ might track \textbf{script} rather than \textbf{language defaultness}. We agree this is a real risk \emph{in isolation}. That is precisely why we pair Hindi with Spanish.
+
+\vspace{6pt}
+\textbf{Key argument: Spanish is the anti-script control built into the benchmark.}
+Let $s(\cdot)$ denote script. For Hindi vs English, the confound is strong because typically
+\[
+\begin{aligned}
+s(V_{\mathrm{hi}}) &= \mathrm{Deva},\\
+s(V_{\mathrm{en}}) &= \mathrm{Latin}.
+\end{aligned}
+\]
+But for Spanish vs English, script is \textbf{matched}:
+\[
+\begin{aligned}
+s(V_{\mathrm{es}}) &= \mathrm{Latin},\\
+s(V_{\mathrm{en}}) &= \mathrm{Latin}.
+\end{aligned}
+\]
+Therefore, any hypothesis of the form “FOXP2 works by learning a Devanagari-vs-Latin script discriminator” predicts:
+\[
+\begin{aligned}
+\Delta M_{\mathrm{hi}} &\uparrow \quad \text{(possible)},\\
+\Delta M_{\mathrm{es}} &\approx 0 \quad \text{(should fail)}.
+\end{aligned}
+\]
+Empirically, we observe strong Spanish gains under the \emph{same pipeline} (same localization procedure, same low-rank steering extraction, same signed edit form), which is incompatible with a script-detector explanation. Put bluntly: \textbf{Spanish cannot be “won” by script.}
+
+\vspace{6pt}
+\textbf{Why this is stronger than “we also ran Hinglish.”}
+A script-controlled Hindi variant (Hinglish/transliteration) is useful, but it still invites debates about what constitutes “Hindi” in Latin script. Spanish avoids that ambiguity: \textbf{Spanish is uncontroversially Spanish in Latin script, and English is also Latin script.} Thus, Spanish provides a \textbf{clean falsifier} of script-only mechanisms: if the method were merely moving probability mass to non-Latin tokens or leveraging Unicode ranges, Spanish would show no consistent improvement. The fact that it does is the central construct-separation evidence.
+
+\vspace{6pt}
+\textbf{Additional sanity check: script-only statistics are insufficient.}
+We further verify that improvements are not reducible to trivial surface shifts by comparing to a script statistic (Hindi only):
+\[
+\mathrm{ScriptFrac}_{\mathrm{Deva}}(y)=
+\tfrac{\#\{\text{Devanagari chars}\}}{\#\{\text{alphabetic chars}\}}.
+\]
+(counts within \(y\)).
+and requiring that FOXP2’s Hindi improvements track \textbf{language identity} rather than just increasing $\mathrm{ScriptFrac}_{\mathrm{Deva}}$ (e.g., via stable LID gains and preserved task utility). But the decisive point remains Spanish: \textbf{for Spanish, $\mathrm{ScriptFrac}$ is identically uninformative}, yet the method still improves defaultness.
+
+\vspace{8pt}
+\textbf{Takeaway.} We do not claim that Hindi alone rules out script confounding, \textbf{it cannot}. Instead, we \textbf{treat Hindi as the hard case} where script confounds are maximally plausible, and we pair it with \textbf{Spanish as the clean anti-script control} where script-based explanations collapse. The fact that FOXP2 produces substantial gains for \textbf{both} (including Spanish where script is shared with English) supports the intended interpretation: $\Delta M$ reflects an \textbf{early-step lexical prior shift toward the target language}, not merely a subword-level script detector.
+\end{description}
+
+
+\item[\ding{93}] \textbf{Does $\Delta M$ correlate with human judgments of “the model naturally starts in Hindi/Spanish” across diverse prompts? If not, why should we trust it as the main outcome?}
+\begin{description}
+\item[\ding{224}] \textbf{Yes, $\Delta M$ is treated as a \emph{mechanistic proxy} whose legitimacy must be earned by \textbf{external validity} against humans, not assumed.}
+We therefore evaluate the construct “\emph{natural start}” with a \textbf{paired human preference protocol} on the \emph{same prompt distribution} used for reporting, and we make the relationship between $\Delta M$ and human judgments an \textbf{explicit, quantitative calibration object}.
+
+\vspace{4pt}
+\textbf{(1) What humans judge: a direct operationalization of “natural start.”}
+For each prompt $x$, we generate two continuations: $y^{(0)}$ (base) and $y^{(1)}$ (FOXP2) under identical decoding settings. Annotators are shown $(x, y^{(0)}, y^{(1)})$ in randomized order and answer:
+\[
+r(x)\in\{-1,0,+1\},
+\]
+where $r(x)=+1$ if FOXP2 “starts more naturally” in the target language, $r(x)=-1$ if baseline is preferred, and $r(x)=0$ for ties/uncertainty. In addition, we optionally collect a \textbf{Likert} signal $s(x)\in\{1,\dots,5\}$ for “how natural” the start feels, enabling finer-grained calibration.
+
+We stratify prompts from $\mathcal{D}_{\mathrm{neutral}}$ by \textbf{topic and format} (QA / summarization / reasoning / dialogue-style instructions) and include a smaller slice from refusal/safety prompts to ensure the proxy is not only valid on easy neutral cases.
+
+\vspace{6pt}
+\textbf{(2) What $\Delta M$ predicts: a per-prompt margin that should order human preference.}
+We compute $\Delta M$ per prompt using the short-horizon definition (e.g., $T=\{1,2,3\}$):
+\begin{equation*}
+\begin{aligned}
+\Delta M(x)
+&= \frac{1}{|T|}
+   \sum_{t \in T} \Big( \\
+&\quad M^{\ell_t}(x,t)
+      - M^{\mathrm{en}}(x,t) \Big), \\
+M^{\ell}(x,t)
+&= \sum_{u \in V_\ell}
+   p_\theta(u \mid \mathrm{ctx}_t).
+\end{aligned}
+\end{equation*}
+The intended interpretation is \textbf{ordinal}: higher $\Delta M(x)$ should mean \emph{humans more often prefer FOXP2’s start}.
+
+We therefore report correlation in two complementary ways:
+\begin{equation*}
+\begin{aligned}
+\rho_{\mathrm{rank}}
+&= \mathrm{Spearman}\big( \\
+&\quad \Delta M(x),\,
+      \mathbb{I}[r(x)=+1] \big), \\
+\tau
+&= \mathrm{Kendall}\big( \\
+&\quad \Delta M(x),\, s(x) \big).
+\end{aligned}
+\end{equation*}
+where $\mathbb{I}[\cdot]$ is an indicator and $s(x)$ is the mean Likert score when available. We bootstrap prompts to obtain \textbf{confidence intervals} for all correlations.
+
+\vspace{6pt}
+\textbf{(3) Calibration, not just correlation: turning $\Delta M$ into a probability of “natural start.”}
+Correlation can be non-zero but unhelpful operationally. We thus treat $\Delta M$ as a \textbf{calibrated score} by fitting a monotone link:
+\[
+\begin{aligned}
+\Pr\big(r(x)=+1 \mid {} & \Delta M(x)\big) \\
+&\approx \sigma\!\big(a\,\Delta M(x)+b\big).
+\end{aligned}
+\]
+and we report a \textbf{reliability curve}: bin prompts by $\Delta M$ deciles and plot the empirical preference rate $\widehat{\Pr}[r=+1]$ in each bin. This answers the reviewer’s question directly: \emph{“if $\Delta M$ increases by a lot, do humans actually notice?”}
+
+
+\vspace{4pt}
+\textbf{Minimal reporting table (human anchoring).}
+
+\begin{center}
+\footnotesize
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{lccc}
+\toprule
+Lang & $\rho_{\text{rank}}$ & Cal.\ $a$ & Tie\% \\
+\midrule
+Hindi   & $\mathbf{0.62}$ [0.54,0.69] & $\mathbf{1.88}$ [1.41,2.36] & 9.7 \\
+Spanish & $\mathbf{0.58}$ [0.50,0.65] & $\mathbf{1.64}$ [1.22,2.08] & 8.3 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{6pt}
+\textbf{(4) Error audit: when $\Delta M$ rises but humans disagree, we diagnose the failure mode.}
+We explicitly \textbf{do not} hide disagreement cases; we categorize them into interpretable buckets:
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+\item \textbf{Code-mix ambiguity:} FOXP2 pushes early target tokens but rapidly switches, leading annotators to judge the start as not “naturally” target-language.
+\item \textbf{Named-entity anchors:} starts dominated by shared entities (e.g., “Google”, “AI”) can inflate mass without perceived language commitment.
+\item \textbf{Style spillover:} FOXP2 may alter politeness/verbosity markers correlated with language, which can confuse “natural start” judgments.
+\item \textbf{Transliteration artifacts (Hindi):} if the model produces Hindi content in Latin script, humans may judge it as less “natural Hindi,” even if LID rises.
+\end{itemize}
+This audit is crucial: it tells us whether $\Delta M$ is failing because the construct is wrong, or because the metric is missing a known confound that we can correct.
+
+\vspace{6pt}
+\textbf{(5) If correlation is weak, we change what we headline.}
+We are explicit about the epistemic status: \textbf{$\Delta M$ is a \emph{mechanistic handle}, not a philosophical definition of defaultness.} If human correlation were weak or unstable across prompt families, we would:
+\begin{enumerate}[leftmargin=*,itemsep=2pt]
+\item \textbf{Demote $\Delta M$} to a mechanistic diagnostic (useful for identifying the layer window and support), and
+\item Promote a decision score that fuses mass with a script-agnostic external channel:
+\[
+\begin{alignedat}{2}
+\text{Score}(x)
+&= \alpha\, z(\Delta M(x)) \\
+&\quad {}+ (1-\alpha)\, z(\Delta_{\mathrm{LID}}(x)).
+\end{alignedat}
+\]
+where $\mathrm{z}(\cdot)$ standardizes within-language and $\Delta_{\mathrm{LID}}$ is a detector/human-derived signal. We then validate \emph{this} composite against humans with the same calibration protocol.
+\end{enumerate}
+In other words: \textbf{we do not insist $\Delta M$ is the main outcome unless humans agree that it tracks the phenomenon.}
+
+\vspace{6pt}
+\textbf{Takeaway.} We treat $\Delta M$ as a \textbf{theory-driven proxy} for an early commitment event. Its credibility comes from (i) \textbf{paired human preferences} on the same prompt distribution, (ii) \textbf{rank-correlation} plus \textbf{probabilistic calibration} (not merely “it trends right”), and (iii) an explicit \textbf{error taxonomy} that reveals when the proxy fails. If this external validity does not hold, we revise the headline metric and foreground the fused decision score rather than over-claiming from $\Delta M$ alone.
+\end{description}
+
+
+
+\item[\ding{93}] \textbf{How do you handle code-mixing and transliteration (Hindi in Latin script / Hinglish)?}
+\begin{description}
+\item[\ding{224}] \textbf{We \emph{do not} model or evaluate code-mixing or transliteration in this work; they are intentionally out of scope.}
+FOXP2 is designed to control \textbf{language defaultness as a \emph{single-language commitment event}}—i.e., whether the model \textbf{starts} in the target language under weak prompting—\emph{not} to optimize bilingual generation style. Code-mixing (Hindi+English within a sentence) and transliteration (Hindi content in Latin script) introduce additional latent degrees of freedom—\textbf{mixing policy} and \textbf{script realization}—that can dominate early tokens and confound the construct we seek to measure.
+
+\vspace{4pt}
+\textbf{Scope choice (why this is principled).}
+Let $\ell(\cdot)$ denote language identity and $s(\cdot)$ denote script. Our claimed object is the early commitment to a target language $\ell_t$:
+\textbf{Defaultness event:}
+\[
+\begin{aligned}
+\ell(y_{1:k}) &= \ell_t, \\
+&\text{for small } k .
+\end{aligned}
+\]
+under a fixed decoding policy. Code-mixing violates the single-label assumption (there is no single $\ell$), and transliteration breaks the intended script realization (Hindi-by-language but Latin-by-script). If included, a method could appear to improve “Hindi defaultness” by \textbf{sprinkling Hindi tokens}, switching scripts midstream, or producing Hinglish—none of which matches the goal of \textbf{clean target-language onset}.
+
+\vspace{4pt}
+\textbf{Operationally, we enforce this scope in two ways.}
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+\item \textbf{Dataset curation:} $\mathcal{D}_{\mathrm{neutral}}$ and evaluation prompts are selected to elicit \textbf{single-language} outputs; prompts that naturally invite Hinglish/code-mix are excluded.
+\item \textbf{Scoring protocol:} we compute $\Delta M$ and LID on the first sentence (or first clause) under the assumption of a single target language. Samples exhibiting obvious code-mixing/transliteration are treated as \textbf{out-of-scope} (and can be optionally reported as an audit statistic, but are not used to claim gains).
+\end{itemize}
+
+\vspace{4pt}
+\textbf{Takeaway.} FOXP2 targets \textbf{monolingual defaultness control}. Code-mixing and transliteration are important real-world phenomena, but addressing them requires a different objective (and likely different supervision) to avoid conflating bilingual style control with defaultness. We therefore \textbf{intentionally exclude} both from the scope and do not claim performance in those regimes.
+\end{description}
+
+
+
+
+
+
+
+
+
+
+
+
+\item[\ding{93}] \textbf{Why is “first 1–3 tokens” the right horizon? What breaks if you evaluate at $T=\{1,\dots,10\}$ or at a sentence-level language score?}
+\begin{description}
+\item[\ding{224}] \textbf{We target a specific causal object: the \emph{defaultness event}, i.e., the model’s \textbf{initial language commitment} before semantic content and discourse constraints dominate.}
+Defaultness is not “the language of the whole answer.” It is the model’s \textbf{prior preference over languages at onset}. This is precisely the part of generation that can be shifted by a small, localized intervention without requiring the model to re-plan the entire continuation.
+
+\vspace{4pt}
+\textbf{(1) Formal distinction: onset prior vs.\ continuation semantics.}
+Let $\ell(y_t)\in\{\mathrm{en},\mathrm{hi},\mathrm{es}\}$ denote the language identity of the token (or token span) at step $t$. Consider the latent random variable $L$ representing the model’s \textbf{onset language} (the first committed language choice). A clean abstraction is a two-stage generative view:
+\[
+\begin{aligned}
+L &\sim p_\theta(L\mid x),\\
+y_{1:\infty} &\sim p_\theta(y\mid x, L).
+\end{aligned}
+\]
+where $p_\theta(L\mid x)$ is the \textbf{language prior} induced by the model and prompt, and $p_\theta(y\mid x,L)$ is the content distribution conditioned on the chosen language. FOXP2 is designed to intervene primarily on the first factor $p_\theta(L\mid x)$.
+
+Now define a short-horizon proxy for the onset event:
+\[
+\begin{aligned}
+\Delta M_T(x)
+&= \frac{1}{|T|}\sum_{t\in T}
+   \Big( M^{\ell_t}(x,t) \\
+&\qquad - M^{\mathrm{en}}(x,t) \Big),\\
+M^{\ell}(x,t)
+&= \sum_{u\in V_\ell} p_\theta(u\mid \mathrm{ctx}_t).
+\end{aligned}
+\]
+For small $T$ (e.g., $\{1,2,3\}$), $\Delta M_T$ primarily reflects \textbf{how the model allocates probability mass across languages before it has committed to topic-specific lexical items}. For larger $T$ (e.g., $\{1,\dots,10\}$), the signal increasingly measures \textbf{topic vocabulary compatibility} rather than the onset language preference.
+
+\vspace{6pt}
+\textbf{(2) What breaks at $T=\{1,\dots,10\}$: entanglement with topic and entities.}
+At longer horizons, the conditional distribution $p_\theta(\cdot\mid\mathrm{ctx}_t)$ is shaped by:
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+\item \textbf{Topic vocabulary:} Many prompts force domain-specific terms (math symbols, scientific names, code identifiers) that are effectively shared across languages or are English-dominant.
+\item \textbf{Named entities and acronyms:} “Google”, “COVID”, “LLM”, “AI”, citations, URLs—these are cross-lingual anchors that inflate mass in shared/neutral token sets, diluting the language prior signal.
+\item \textbf{Discourse structure:} After a few tokens, the model begins to express structure (e.g., “Sure,” “Here are…”, list formatting), which is a mixture of language and style conventions.
+\end{itemize}
+This produces a measurement pathology: a model may \textbf{start} in Hindi (true defaultness gain) but then use English technical terms by necessity; a long-horizon metric would incorrectly count that as “not Hindi.”
+
+\vspace{6pt}
+\textbf{(3) Sentence-level LID is a downstream consequence, not the control knob.}
+Sentence-level LID aggregates over many tokens and therefore mixes multiple phenomena:
+\begin{equation*}
+\begin{aligned}
+\mathrm{LID}_{\mathrm{sent}}(y)
+&\approx \text{Onset language}  \\
+&\quad + \text{topic constraints} \\
+&\quad + \text{entity realizations} \\
+&\quad + \text{formatting/style}.
+\end{aligned}
+\end{equation*}
+This is useful for \textbf{user-facing outcomes}, and we do report it. But it is not a clean measure of \textbf{defaultness} because it answers a different question (“what language is the sentence?”), not “what language did the model \emph{choose first} when it had freedom to choose?”
+
+\vspace{6pt}
+\textbf{(4) We do not hide the horizon issue—we report a sweep and treat stability as evidence.}
+We report:
+\[
+T\in\{\{1,2,3\},\{1,\dots,5\},\{1,\dots,10\}\},
+\]
+and empirically observe the expected signature of a defaultness intervention:
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+\item \textbf{Largest gains at short horizons} (where the language prior lives).
+\item \textbf{Monotone decay} of measured gains as $T$ increases (as topic/structure dominates).
+\item \textbf{Consistency across prompt families} at $T=\{1,2,3\}$ (mechanistic), with increasing variance at larger $T$ (content-driven).
+\end{itemize}
+This sweep is not cosmetic: it explicitly shows that FOXP2 is controlling an \textbf{early commitment event} rather than “forcing the whole answer” into a language irrespective of content.
+
+\vspace{6pt}
+\textbf{Takeaway.} $T=\{1,2,3\}$ is the correct primary horizon because it best isolates the \textbf{onset language prior}—the object FOXP2 is designed to edit. Longer horizons and sentence-level LID are still valuable, but they measure \textbf{downstream realization under semantic constraints}, where language identity is inevitably entangled with topic vocabulary, named entities, and discourse structure.
+\end{description}
+
+% ============================================================
+
+\item[\ding{93}] \textbf{How do you ensure $\Delta M$ is not sensitive to punctuation/formatting tokens that co-occur with one language in your prompts (quotes, commas, “:” patterns)?}
+\begin{description}
+\item[\ding{224}] \textbf{We enforce formatting invariance by \emph{construction} and verify it by \emph{stress tests}, so punctuation cannot be the hidden lever.}
+There are three layers of defense:
+
+\vspace{2pt}
+\textbf{(i) Token-set hygiene (prevention).}
+We define each language token set $V_\ell$ with an explicit exclusion list:
+\[
+V_\ell \;\leftarrow\; V_\ell \setminus V_{\mathrm{fmt}},
+\]
+where $V_{\mathrm{fmt}}$ contains punctuation-only tokens, whitespace-only variants, common quotation/dash bullets, list markers, and other formatting-heavy subwords. This prevents $\Delta M$ from being driven by artifacts like “:” or “-”.
+
+\vspace{4pt}
+\textbf{(ii) Prompt render randomization (invariance).}
+For each meaning unit prompt $x$, we generate a family of format-preserving renderings $\{x^{(k)}\}$ (same semantics, different surface format): with/without quotes, alternate colon styles, bullet vs paragraph, different whitespace conventions. We require:
+\[
+\mathbb{E}_k[\Delta M_T(x^{(k)})]\ \text{to be stable,}
+\]
+and we report the variance across $k$ as a robustness statistic.
+
+\vspace{4pt}
+\textbf{(iii) Attribution check (diagnosis).}
+Finally, we explicitly quantify how much of the mass shift is attributable to formatting tokens by computing:
+\begin{flalign*}
+\Delta M^{\mathrm{fmt}}_T(x)
+&= \\\frac{1}{|T|}
+   \sum_{t\in T}\sum_{u\in V_{\mathrm{fmt}}}
+   \Big(p_{\theta'}(u\mid \mathrm{ctx}_t)
+  \\- p_{\theta}(u\mid \mathrm{ctx}_t)\Big) &&
+\end{flalign*}
+and we require it to be negligible relative to the language mass shift:
+\[
+\big|\Delta M^{\mathrm{fmt}}_T(x)\big|\ \ll\ \big|\Delta M_T(x)\big|.
+\]
+If this is not true, we do \textbf{not} claim defaultness gains without reporting the confound.
+
+\vspace{4pt}
+\textbf{Takeaway.} Punctuation/formatting sensitivity is addressed at three levels: (i) excluded from $V_\ell$ by design, (ii) stress-tested via prompt render randomization, and (iii) audited with an explicit attribution term to ensure $\Delta M$ reflects language commitment rather than formatting conventions.
+\end{description}
+
+\end{itemize}
+
+
+
+
+
+
+
+
+
+
+
+
+
+\section*{B. Token-Set Definition: Fragile Lever or Stable Measurement?}
+
+
+\begin{itemize}[leftmargin=1.5em]
+
+
+\item[\ding{93}] \textbf{How exactly are $V_{\mathrm{hi}},V_{\mathrm{es}},V_{\mathrm{en}}$ constructed from a tokenizer vocabulary---what are the inclusion/exclusion rules? Do results change under alternative reasonable constructions?}
+\begin{description}
+\item[\ding{224}] \textbf{We treat token-set construction as a \emph{measurement specification} and therefore make it \textbf{deterministic}, \textbf{auditable}, and \textbf{sensitivity-tested}.}
+Because $\Delta M$ is defined in token-id space,
+\[
+\begin{aligned}
+M^{\ell}(x,t) &= \sum_{u\in V_{\ell}}p_\theta(u\mid \mathrm{ctx}_t),\\
+\Delta M(x,t) &= M^{\ell_t}(x,t)-M^{\mathrm{en}}(x,t).
+\end{aligned}
+\]
+the choice of $V_\ell$ is a hidden lever unless it is pinned down with explicit rules. We therefore (i) \textbf{pin} construction to an \textbf{exact tokenizer hash} (vocabulary + merges), (ii) provide \textbf{deterministic inclusion/exclusion predicates}, and (iii) rerun headline results under multiple \textbf{reasonable variants} to quantify sensitivity.
+
+\vspace{6pt}
+\textbf{(1) Global prerequisites: tokenizer pinning and neutral exclusions.}
+All sets are built from the tokenizer vocabulary $\mathcal{V}$ with a fixed decoding function $\mathrm{dec}(u)$ for token-id $u\in\mathcal{V}$. We publish:
+\[
+\begin{aligned}
+\texttt{tokenizer\_hash}
+&= \mathrm{SHA256}\big(\texttt{vocab}, \\
+&\qquad \texttt{merges}\big).
+\end{aligned}
+\]
+and reject any reproduction attempt where the hash mismatches.
+
+We define a \textbf{neutral exclusion set} $V_{\mathrm{neutral}}$ that is removed from every language set:
+\[
+V_{\mathrm{neutral}}=
+\left\{
+\begin{aligned}
+\text{tokens that decode to only}\\
+\text{whitespace, punctuation,}\\
+\text{digits, or common}\\
+\text{alphanumerics}
+\end{aligned}
+\right\}
+\]
+including list markers, quotes, URL fragments, and purely numeric tokens. This ensures $\Delta M$ cannot be won by formatting artifacts or by “the model said 2024.”
+
+\vspace{8pt}
+\textbf{(2) Hindi: script-centric but purity-controlled.}
+Hindi is intrinsically script-informative, so we explicitly formalize \textbf{purity} to avoid low-quality mixed fragments. Let $\mathbb{I}_{\mathrm{Deva}}(c)$ be an indicator that a character $c$ is a Devanagari letter (Unicode block + letter category). Define the Devanagari purity of a decoded token:
+\[
+\pi_{\mathrm{Deva}}(u)
+=
+\frac{
+\sum_{c\in \mathrm{dec}(u)} \mathbb{I}_{\mathrm{Deva}}(c)
+}{
+\max\!\left\{1,\ 
+\sum_{c\in \mathrm{dec}(u)}
+\mathbb{I}_{\mathrm{Alpha}}(c)
+\right\}
+}
+\]
+where $\mathbb{I}_{\mathrm{Alpha}}(c)$ counts alphabetic letters (any script). We then set:
+\[
+V_{\mathrm{hi}} =
+\left\{
+\begin{aligned}
+u \in \mathcal{V}\setminus V_{\mathrm{neutral}} :\\
+\quad \pi_{\mathrm{Deva}}(u) \ge \tau_{\mathrm{hi}},\\
+\quad \exists c \in \mathrm{dec}(u)\;:\;
+\mathbb{I}_{\mathrm{Deva}}(c)=1
+\end{aligned}
+\right\}
+\]
+with a fixed threshold (e.g., $\tau_{\mathrm{hi}}=0.6$) chosen once and reported. We additionally maintain a small, \textbf{audited exception list} for tokens that are visually Devanagari but decode to degenerate artifacts (rare control characters, tokenizer glitches), which are removed.
+
+\vspace{8pt}
+\textbf{(3) Spanish and English: lexicon association, not script.}
+For Latin-script languages, script cannot separate Spanish from English. We therefore use a \textbf{lexicon association proxy} that is still deterministic and lightweight. Let $\mathcal{L}_{\mathrm{es}}$ and $\mathcal{L}_{\mathrm{en}}$ be fixed wordlists (published) and define a token’s score by max-matching its decoded surface form to lexicon entries after normalization $\phi(\cdot)$ (lowercasing, stripping leading whitespace markers, removing punctuation-only affixes):
+\[
+\begin{aligned}
+\mathrm{lexscore}_{\ell}(u) &= \max_{w\in \mathcal{L}_{\ell}}\\
+&\mathrm{sim}\big(\phi(\mathrm{dec}(u)), w\big).
+\end{aligned}
+\]
+where $\mathrm{sim}$ is a deterministic string similarity (exact match or prefix match; we publish which). We then define:
+\[
+V_{\mathrm{es}}=
+\left\{
+\begin{aligned}
+u\in \mathcal{V}\setminus V_{\mathrm{neutral}}\\
+\land\ \mathrm{lexscore}_{\mathrm{es}}(u)\ge \gamma_{\mathrm{es}}\\
+\land\ u\notin V_{\mathrm{amb}}
+\end{aligned}
+\right\}.
+\]
+\[
+V_{\mathrm{en}}=
+\left\{
+\begin{aligned}
+u\in\mathcal{V}\setminus V_{\mathrm{neutral}}\\
+\land\ \mathrm{lexscore}_{\mathrm{en}}(u)\ge \gamma_{\mathrm{en}}\\
+\land\ u\notin V_{\mathrm{amb}}
+\end{aligned}
+\right\}.
+\]
+where $V_{\mathrm{amb}}$ is an explicit \textbf{high-ambiguity set} of shared fragments (common function-word pieces, short substrings, frequent affixes) that are excluded because they are not diagnostic of language identity. This is crucial: without $V_{\mathrm{amb}}$, $\Delta M$ can be artificially inflated by shared subword mass that is not “Spanishness.”
+
+\vspace{6pt}
+\textbf{Minimal construction summary (what exactly is included/excluded).}
+\begin{center}
+\small
+\begin{tabular}{@{}lp{0.72\linewidth}@{}}
+\toprule
+\textbf{Set} & \textbf{Inclusion / Exclusion rule (deterministic)} \\
+\midrule
+$V_{\mathrm{neutral}}$ & whitespace-only, punctuation-only, digit-only, URL-like, list markers, control artifacts (always removed) \\
+$V_{\mathrm{hi}}$ & contains a Devanagari letter \textbf{and} $\pi_{\mathrm{Deva}}(u)\ge \tau_{\mathrm{hi}}$; excludes low-purity mixed fragments and all $V_{\mathrm{neutral}}$ \\
+$V_{\mathrm{es}}$ & $\mathrm{lexscore}_{\mathrm{es}}(u)\ge \gamma_{\mathrm{es}}$; excludes $V_{\mathrm{neutral}}$ and ambiguity set $V_{\mathrm{amb}}$ \\
+$V_{\mathrm{en}}$ & $\mathrm{lexscore}_{\mathrm{en}}(u)\ge \gamma_{\mathrm{en}}$; excludes $V_{\mathrm{neutral}}$ and ambiguity set $V_{\mathrm{amb}}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{8pt}
+\textbf{(4) Sensitivity: alternative reasonable constructions and re-runs.}
+We explicitly assume that no single $V_\ell$ is uniquely correct, so we rerun key results under \textbf{three reasonable variants} and report \textbf{sensitivity bands} (mean $\pm$ std across variants) for headline metrics:
+\begin{enumerate}[leftmargin=*,itemsep=2pt]
+\item \textbf{Purity tightening/loosening (Hindi):} $\tau_{\mathrm{hi}}\in\{0.5,0.6,0.7\}$ to test robustness to mixed-script fragments.
+\item \textbf{Lexicon expansion (Spanish/English):} enlarge $\mathcal{L}_\ell$ (or switch from wordlist match to a unigram proxy), re-score tokens deterministically, and rebuild $V_{\mathrm{es}},V_{\mathrm{en}}$.
+\item \textbf{Conservative intersection removal:} remove any token that appears among the top-$q$ frequent tokens for multiple languages in a small reference corpus, i.e.,
+\[
+V_{\ell}\leftarrow V_{\ell}\setminus \bigcup_{\ell'\neq \ell}\mathrm{TopFreq}_q(\ell'),
+\]
+which intentionally shrinks sets to the most diagnostic tokens.
+\end{enumerate}
+Across these variants, FOXP2 is considered reliable only if (i) the \textbf{direction of improvement} remains the same and (ii) effect sizes remain within a narrow band, indicating that gains are not an artifact of a single hand-tuned token list.
+
+\vspace{6pt}
+\textbf{Takeaway.} We publish $V_{\mathrm{hi}},V_{\mathrm{es}},V_{\mathrm{en}}$ as \textbf{deterministic artifacts} pinned to a tokenizer hash, defined by explicit, auditable predicates (script purity for Hindi; lexicon association with ambiguity exclusion for Spanish/English). We then \textbf{re-run} the paper under multiple reasonable variants and report sensitivity bands, so the defaultness conclusions do not depend on a fragile token-set choice.
+\end{description}
+
+
+
+
+
+
+
+
+\item[\ding{93}] \textbf{How do you treat shared subwords (named entities, borrowed words, cognates, numbers, “COVID”, “AI”, “Google”)?}
+\begin{description}
+\item[\ding{224}] \textbf{We treat shared subwords as \emph{non-diagnostic} and explicitly \textbf{remove their influence} from $\Delta M$.}
+These tokens carry content but \textbf{do not evidence language commitment}, so letting them contribute to mass would inflate defaultness (e.g., “\texttt{AI}” appears in every language).
+
+\vspace{2pt}
+\textbf{Shared/neutral set.} We construct an explicit set $V_{\mathrm{shared}}$ that includes: digits, punctuation, alphanumerics, common acronyms, URL-like fragments, and high-frequency named-entity pieces (e.g., \texttt{Google}, \texttt{COVID}). We then enforce:
+\[
+\begin{aligned}
+V_{\ell} &\leftarrow V_{\ell}\setminus V_{\mathrm{shared}},\\
+\ell &\in\{\mathrm{hi},\mathrm{es},\mathrm{en}\}.
+\end{aligned}
+\]
+
+\vspace{2pt}
+\textbf{Optional weighted variant (for robustness).} When we prefer a soft rather than hard exclusion, we use a weighted mass:
+\[
+\begin{aligned}
+M^{\ell}(x,t) &= \sum_{u\in V_{\ell}} w(u)\,p_\theta(u\mid \mathrm{ctx}_t),\\
+w(u) &=
+\begin{cases}
+0 & u\in V_{\mathrm{shared}}\\
+1 & \text{otherwise}
+\end{cases}
+\end{aligned}
+\]
+(or $w(u)\ll 1$ for partial downweighting). In both cases, \textbf{shared tokens cannot carry the mass shift}.
+
+\vspace{2pt}
+\textbf{Resulting guarantee.} With $V_{\mathrm{shared}}$ excluded/downweighted, $\Delta M$ reflects \textbf{language-specific lexical commitment} rather than early emission of universally shared strings.
+\end{description}
+
+
+\item[\ding{93}] \textbf{Is the improvement robust to token-set perturbations (e.g., randomly drop 10–20\% of $V_{\ell_t}$)?}
+\begin{description}
+\item[\ding{224}] \textbf{Yes—this is a required robustness test because token sets are a hidden lever.} We run a \textbf{token-set dropout} check: sample $V_{\ell_t}^{(s)}$ by dropping $p\in\{0.1,0.2\}$ uniformly (and a frequency-weighted variant), recompute $\Delta M$ (and the composed decision score), and report the distribution over $s=1,\dots,S$. FOXP2 is considered robust only if effect ordering and magnitude are stable across perturbations.
+\end{description}
+
+\item[\ding{93}] \textbf{Do you correct for vocabulary-size imbalance across languages? If $|V_{\mathrm{hi}}|\neq|V_{\mathrm{en}}|$, could shifts be partly combinatorial?}
+\begin{description}
+\item[\ding{224}] \textbf{We control for combinatorics by reporting both raw mass and normalized alternatives.} Alongside $M^\ell$, we report
+\[
+\begin{aligned}
+\widetilde M^{\ell}(x,t) &= \frac{1}{|V_{\ell}|}\sum_{u\in V_{\ell}}\\
+& p_\theta(u\mid \mathrm{ctx}_t),\\
+\Delta \widetilde M^{\ell_t} &= \widetilde M^{\ell_t}-\widetilde M^{\mathrm{en}}.
+\end{aligned}
+\]
+and verify that FOXP2 improves both, ruling out a “bigger set wins” artifact.
+\end{description}
+
+\item[\ding{93}] \textbf{Does the method still work if you replace token-set mass with a character-level script classifier or LID score as the primary signal?}
+\begin{description}
+\item[\ding{224}] \textbf{Yes—this is a \emph{cross-metric validity} requirement, not an optional add-on.}
+We re-evaluate defaultness under two alternative primary signals:
+
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+\item \textbf{Script fraction (Hindi only):}
+\[
+\begin{aligned}
+\mathrm{ScriptFrac}_{\mathrm{Deva}}(y_{1:k})
+&=
+\frac{
+\begin{array}{c}
+\#\{\text{Deva-}\\
+\text{nagari chars}\}
+\end{array}
+}{
+\begin{array}{c}
+\max\{1,\\
+\#\{\text{alphabetic}\\
+\text{chars}\}\}
+\end{array}
+}
+\end{aligned}
+\]
+(counts within \(y_{1:k}\)).
+\item \textbf{Detector-based language ID (Hindi \& Spanish):} a script-agnostic $\mathrm{LID}(y_{1:k})$ score on the first clause/sentence.
+\end{itemize}
+
+FOXP2’s claim is considered supported only if it yields \textbf{consistent gains across channels}:
+\[
+\begin{aligned}
+\Delta M &\uparrow,\quad \Delta \mathrm{LID}\uparrow,\\
+\text{and for Hindi } &\Delta \mathrm{ScriptFrac}_{\mathrm{Deva}}\uparrow.
+\end{aligned}
+\]
+while preserving task utility ($\Delta S$ within tolerance). This rules out “metric-specific wins” and ensures the effect reflects \textbf{language commitment}, not a quirk of token-set mass.
+\end{description}
+
+
+
+
+
+\end{itemize}
+
+\section*{C. Mechanistic Claim: “Localized, Low-Rank Control Circuit”}
+
+\begin{itemize}[leftmargin=1.5em]
+
+
+\item[\ding{93}] \textbf{What is the strongest evidence that the effect is truly low-rank rather than “moderately low effective rank under your dataset”? Do you observe consistent eigengaps across seeds, prompt families, and models?}
+\begin{description}
+\item[\ding{224}] \textbf{Our strongest evidence is \emph{stability of the top subspace}, not a single low-rank number.}
+A dataset-local artifact can look “low effective rank” yet drift under re-sampling. We therefore elevate \textbf{eigengap + subspace stability} to first-class reporting objects and only claim a \textbf{localized low-rank circuit} when these are consistent across seeds and prompt families.
+
+\vspace{3pt}
+\textbf{Spectrum + eigengap.} For each candidate window $\mathcal{W}$ and target language $\ell_t$, we form the layer-window update matrix $\Delta Z^{(\mathcal{W},\ell_t)}$ and compute its SVD:
+\[
+\begin{aligned}
+\Delta Z^{(\mathcal{W},\ell_t)} &= U\Sigma V^\top,\\
+\Sigma &= \mathrm{diag}(\sigma_1\ge \sigma_2\ge \cdots).
+\end{aligned}
+\]
+We report:
+\[
+\begin{aligned}
+r_{\mathrm{eff}} &= \exp\!\Big(-\sum_i p_i\log p_i\Big),\\
+p_i &= \frac{\sigma_i}{\sum_j \sigma_j},\\
+\mathrm{Eigengap}(r) &= \frac{\sigma_r}{\sigma_{r+1}}.
+\end{aligned}
+\]
+A “true low-rank” signature is a \textbf{sharp, reproducible eigengap} (e.g., $r\in\{1,2\}$) rather than a smooth spectrum.
+
+\vspace{3pt}
+\textbf{Bootstrap subspace stability (the key discriminator).}
+We bootstrap prompts $b=1,\dots,B$ (and rerun seeds where applicable), recompute $\Delta Z_b$, and measure:
+\[
+\mathrm{PA}_r(b)=\angle\big(\mathrm{span}(U_{1:r}),\ \mathrm{span}(U^{(b)}_{1:r})\big),
+\]
+the principal-angle deviation of the top-$r$ left-singular subspace. We report \textbf{CIs} for $\sigma_i$ and for $\mathrm{PA}_r$; a circuit claim requires \textbf{small angles} and \textbf{stable ordering} of $\sigma_1,\dots,\sigma_r$ across bootstraps.
+
+\vspace{3pt}
+\textbf{Prompt-family and model stratification.}
+We repeat the above on held-out prompt families (domains, paraphrases) and across models. We only claim “localized low-rank” when the same window $\mathcal{W}$ exhibits:
+\[
+\begin{aligned}
+\mathrm{Eigengap}(r) \;&\text{large and stable},\\
+\mathrm{PA}_r \;&\text{small across families}\\
+               &\text{/ seeds / models}.
+\end{aligned}
+\]
+i.e., the \textbf{same} top subspace persists beyond the slice used to estimate $\Delta Z$.
+
+\vspace{3pt}
+\textbf{Conclusion.} We distinguish “moderately low effective rank on one dataset” from a mechanistic low-rank effect by requiring a \textbf{reproducible eigengap} and \textbf{subspace stability} (principal angles) across seeds and prompt families, and we report these explicitly rather than relying on $r_{\mathrm{eff}}$ alone.
+\end{description}
+
+
+
+
+
+
+
+
+\item[\ding{93}] \textbf{Is the circuit necessary and sufficient (ablate $N_{\ell_t}$ to collapse gains; edit only those coordinates/directions to reproduce the effect)?}
+\begin{description}
+\item[\ding{224}] \textbf{Yes—this is framed as a \emph{causal} test: we require both \textbf{necessity} and \textbf{sufficiency} under controlled interventions.}
+Let the FOXP2 edit at layer $\ell$ (within window $\mathcal{W}$) be written as an additive activation intervention:
+\[
+\begin{aligned}
+h^{(\ell)} &\leftarrow h^{(\ell)} + \delta^{(\ell)}(h),\\
+\delta^{(\ell)}(h) &\in \mathrm{span}\!\big(\mathcal{S}^{(\ell)}_{\ell_t}\big).
+\end{aligned}
+\]
+and let $\mathcal{N}_{\ell_t}\subseteq[d]$ denote the discovered \textbf{support} (the “language-neuron” coordinates) for target language $\ell_t$.
+
+\vspace{4pt}
+\textbf{Necessity (support ablation collapses gains).}
+We define a coordinate mask $m_{\mathcal{N}}\in\{0,1\}^d$ and its complement $\bar m_{\mathcal{N}}$. During editing, we \textbf{remove the circuit} by zeroing the edit on the discovered support:
+\[
+\begin{aligned}
+\delta^{(\ell)}_{\text{w/o }\mathcal{N}}(h) &= \bar m_{\mathcal{N}_{\ell_t}}\odot\\
+&\delta^{(\ell)}(h).
+\end{aligned}
+\]
+If the circuit is necessary, then the defaultness improvement must vanish:
+\[
+\begin{aligned}
+\Delta_{\mathrm{gain}}\big(\delta^{(\ell)}_{\text{w/o }\mathcal{N}}\big)
+&\approx 0.
+\end{aligned}
+\]
+where $\Delta_{\mathrm{gain}}$ is the measured improvement in defaultness (e.g., $\Delta M$ / DefaultScore) relative to baseline. This rules out the interpretation that gains come from diffuse, non-specific perturbations outside $\mathcal{N}_{\ell_t}$.
+
+\vspace{6pt}
+\textbf{Sufficiency (editing \emph{only} the circuit reproduces gains).}
+We then apply the edit \textbf{only on the discovered support} and \textbf{only along the discovered directions}:
+\[
+\begin{aligned}
+\delta^{(\ell)}_{\text{only }\mathcal{N}}(h) &= m_{\mathcal{N}_{\ell_t}}\odot\\
+&\delta^{(\ell)}(h),\\
+\delta^{(\ell)}(h) &\in \mathrm{span}\!\big(\mathcal{S}^{(\ell)}_{\ell_t}\big),\\
+\ell &\in\mathcal{W}.
+\end{aligned}
+\]
+If the circuit is sufficient, then we recover essentially the full FOXP2 effect:
+\[
+\begin{aligned}
+\Delta_{\mathrm{gain}}\big(\delta^{(\ell)}_{\text{only }\mathcal{N}}\big)
+&\approx \Delta_{\mathrm{gain}}\big(\delta^{(\ell)}\big).
+\end{aligned}
+\]
+with comparable utility preservation ($\Delta S$ within tolerance). This rules out the claim that “extra undiscovered coordinates” are needed to realize the behavior.
+
+\vspace{6pt}
+\textbf{Stronger variant (direction ablation).}
+To ensure necessity is not merely “some coordinates matter,” we also ablate the discovered \emph{directional subspace} by projecting the edit onto its orthogonal complement:
+\[
+\begin{aligned}
+\delta^{(\ell)}_{\perp}(h) &= \delta^{(\ell)}(h)\\
+&-\Pi_{\mathcal{S}^{(\ell)}_{\ell_t}}\delta^{(\ell)}(h).
+\end{aligned}
+\]
+and require $\Delta_{\mathrm{gain}}(\delta^{(\ell)}_{\perp})\approx 0$. This shows the effect is tied to the \textbf{identified low-rank directions}, not just to injecting energy into $\mathcal{N}_{\ell_t}$.
+
+\vspace{4pt}
+\textbf{Conclusion.} We treat “circuit” as a causal object: \textbf{remove it} and gains disappear (necessity), \textbf{isolate it} and gains persist (sufficiency). These two tests prevent rhetorical overreach and make the mechanistic claim falsifiable.
+\end{description}
+
+
+
+
+
+
+
+
+
+\item[\ding{93}] \textbf{Why does “negative English suppression” not simply function as a generic entropy/uncertainty increase that makes English less likely? What separates targeted suppression from generic logit flattening?}
+\begin{description}
+\item[\ding{224}] \textbf{We separate “targeted suppression” from “generic flattening” by holding \emph{entropy change constant} and checking whether the effect remains \textbf{directional}.}
+A pure flattening mechanism predicts: \emph{any intervention that increases uncertainty by the same amount should yield the same apparent defaultness shift.} FOXP2 predicts a stronger, structured signature: \textbf{mass transfers specifically from English to the target language}, not from the top of the distribution uniformly.
+
+\vspace{3pt}
+\textbf{Mechanistic contrast.}
+Let $z_t\in\mathbb{R}^{|\mathcal{V}|}$ be logits at step $t$, $p_t=\mathrm{softmax}(z_t)$, and define entropy $H(p_t)=-\sum_u p_t(u)\log p_t(u)$.
+Generic logit flattening (temperature $T>1$) produces
+\[
+p_t^{(T)}=\mathrm{softmax}(z_t/T),
+\]
+which increases entropy but preserves \textbf{relative directions} in logit space. In contrast, FOXP2’s “negative English suppression” acts as a \textbf{structured logit/activation shift} concentrated on an English-associated subspace:
+\[
+\begin{aligned}
+h^{(\ell)} &\leftarrow h^{(\ell)} - \lambda\,P_{\mathcal{S}_{\mathrm{en}}^{(\ell)}}h^{(\ell)}\\
+&+ \lambda'\,P_{\mathcal{S}_{\ell_t}^{(\ell)}}h^{(\ell)},\\
+&\ell\in\mathcal{W}.
+\end{aligned}
+\]
+which implies a \textbf{directional} change in logits that should preferentially reduce English token mass while increasing target-language mass.
+
+\vspace{4pt}
+\textbf{Entropy-matched controls (the decisive test).}
+We introduce baselines that are tuned to match FOXP2’s entropy shift \emph{at each step}:
+\[
+\Delta H_t \;=\; H(p_t^{\text{FOXP2}})-H(p_t^{\text{base}}).
+\]
+We then pick control parameters to satisfy:
+\[
+H(p_t^{\text{control}})\approx H(p_t^{\text{FOXP2}})\quad \forall t\in T.
+\]
+Two controls are sufficient and standard:
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+\item \textbf{Temperature control:} choose $T_t$ such that $H(\mathrm{softmax}(z_t/T_t))\approx H(p_t^{\text{FOXP2}})$.
+\item \textbf{Isotropic-noise control:} add $\epsilon\sim \mathcal{N}(0,\sigma_t^2 I)$ with $\sigma_t$ tuned so $H(\mathrm{softmax}(z_t+\epsilon))$ matches.
+\end{itemize}
+
+\vspace{4pt}
+\textbf{What we check: directional mass transfer vs uniform uncertainty.}
+We then compare not just $\Delta M$, but the \textbf{structure} of the probability shift. A flattening mechanism predicts broadly distributed changes and weak language-specific transfer. Targeted suppression predicts:
+\[
+\begin{aligned}
+\Delta M_{\ell_t}(x) &\uparrow,\\
+\Delta M_{\mathrm{en}}(x) &\downarrow.
+\end{aligned}
+\]
+with \textbf{minimal} collateral change to non-language tokens and \textbf{smaller utility loss} than entropy-only perturbations under the same $\Delta H_t$.
+
+\vspace{3pt}
+\textbf{Interpretation.}
+If entropy-matched controls replicate FOXP2’s defaultness gains, then FOXP2 is not doing targeted language control—it is merely injecting uncertainty. If they do \emph{not}, and FOXP2 uniquely yields \textbf{language-specific mass transfer} at comparable entropy, then the negative English component is meaningfully \textbf{directional suppression} rather than generic logit flattening.
+
+\vspace{3pt}
+\textbf{Takeaway.} We rule out the “generic uncertainty” explanation by using \textbf{entropy-matched} temperature/noise controls: FOXP2 must outperform these controls in \textbf{language-specific mass transfer} while preserving utility, otherwise we do not attribute the effect to targeted English suppression.
+\end{description}
+
+
+
+
+
+
+
+
+\item[\ding{93}] \textbf{Do steering directions transfer across meaning units and domains? If $S^{(\ell)}_{\ell_t}$ is mechanistic, it should generalize beyond the matched set used to compute $\Delta Z$.}
+\begin{description}
+\item[\ding{224}] \textbf{Yes—transfer is treated as an \emph{OOD interventional} test, not an assumption.}
+We estimate $S^{(\ell)}_{\ell_t}$ on a training subset $\mathcal{D}_{\text{train}}$ of meaning units, then \textbf{freeze} it and evaluate the same edit on disjoint domains (QA, summarization, reasoning, refusal). For each domain, we report the retained gain:
+\[
+\begin{aligned}
+G(\mathcal{D}) &= \Delta_{\mathrm{gain}}(S^{(\ell)}_{\ell_t};\mathcal{D}),\\
+\mathrm{Retain}(\mathcal{D}) &= \frac{G(\mathcal{D})}{G(\mathcal{D}_{\text{train}})}.
+\end{aligned}
+\]
+A mechanistic subspace should yield \textbf{high retention} across domains; substantial decay (low $\mathrm{Retain}$) is reported as evidence the discovered directions are \textbf{dataset-local} rather than generally causal.
+\end{description}
+
+
+
+
+
+
+
+
+\end{itemize}
+
+\section*{D. Semantic and Utility Preservation: Proving It Is Not a “Style Hack”}
+
+\begin{itemize}[leftmargin=1.5em]
+
+\item[\ding{93}] \textbf{What is the utility metric $\Delta S$ concretely (datasets, scoring functions, confidence intervals)? Is it robust across QA, summarization, reasoning, and safety refusal prompts?}
+\begin{description}
+\item[\ding{224}] \textbf{$\Delta S$ is a \emph{matched-suite} utility delta with bootstrap uncertainty, reported per-slice and in aggregate.}
+We evaluate on a fixed downstream suite $\mathcal{B}=\{\mathcal{B}_{\mathrm{QA}},\mathcal{B}_{\mathrm{SUM}},\mathcal{B}_{\mathrm{REAS}},\mathcal{B}_{\mathrm{SAFE}}\}$ and define utility as an average of task scores $S_k(\cdot)$ under identical decoding:
+\[
+\begin{aligned}
+\Delta S
+&= \sum_{k\in\mathcal{B}} \alpha_k
+   \Big(
+      \overline{S_k}^{\,\text{FOXP2}}
+      - \overline{S_k}^{\,\text{base}}
+   \Big),\\
+   \sum_k \alpha_k &= 1.
+\end{aligned}
+\]
+where $\alpha_k$ are fixed weights (reported). Concretely:
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+\item \textbf{QA:} Exact Match (EM) and token-level F1.
+\item \textbf{Summarization:} ROUGE (e.g., R-1/R-2/R-L) plus a lightweight factuality proxy.
+\item \textbf{Reasoning:} accuracy on a fixed answer key (exact / multiple-choice).
+\item \textbf{Safety/refusal:} policy compliance rate (and refusal correctness where applicable).
+\end{itemize}
+For every slice $k$, we report $\Delta S_k$ with \textbf{bootstrap confidence intervals} over prompts, and we report the weighted aggregate $\Delta S$ alongside the full per-task breakdown so that “no regression” cannot hide a failure in any one slice.
+\end{description}
+
+
+\item[\ding{93}] \textbf{Do you preserve semantics at the level of answer correctness or only embedding similarity? Embedding metrics can miss meaning drift---especially cross-lingually.}
+\begin{description}
+\item[\ding{224}] \textbf{We do \emph{not} rely on embeddings alone: they are a fast diagnostic, but semantic preservation is certified by \textbf{task-grounded correctness} and \textbf{human checks}.}
+We report three layers of evidence:
+
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+\item \textbf{Embedding invariance (necessary):} a quick screen for gross semantic drift (e.g., cosine similarity between baseline vs.\ FOXP2 outputs under the same prompt).
+\item \textbf{Task-grounded correctness (sufficient for QA/reasoning):} we directly compare answer accuracy (EM/F1 for QA; accuracy for reasoning). If FOXP2 preserves meaning, these scores must remain within a tight tolerance.
+\item \textbf{Targeted human audits:} a stratified sample is manually checked for meaning changes, especially on prompts where embeddings can be misleading (negation, quantities, named entities).
+\end{itemize}
+
+\textbf{Cross-lingual safeguard.} For Hindi/Spanish outputs, we normalize to a shared evaluation language for scoring (e.g., translate outputs to English before applying EM/F1 or factuality checks). This ensures “semantic preservation” is judged on \textbf{content equivalence}, not on language- or embedding-space artifacts.
+\end{description}
+
+
+%\item[\ding{93}] \textbf{Does the method degrade factuality or calibration while making the output “more Hindi/Spanish”? How do you test that systematically?}
+%\begin{description}
+%\item[\ding{224}] \textbf{We separate language shift from truth shift.} We measure factuality on factoid QA and calibration via confidence-vs-accuracy proxies (selective prediction / ECE-like summaries) under baseline vs FOXP2, and we report whether any change in refusal thresholds correlates with factuality drops.
+%\end{description}
+
+%\item[\ding{93}] \textbf{Does FOXP2 change refusal/safety behavior in a language-dependent way (e.g., becoming more permissive in Hindi)? How do you certify safety invariance across languages?}
+%\begin{description}
+%\item[\ding{224}] \textbf{We treat language steering as safety-relevant and certify invariance explicitly.} On matched safety prompts across languages we report refusal rate, policy compliance, and harm-classifier scores, and enforce a \textbf{cross-language invariance constraint} (bounded differences). We select operating points only from the Pareto region where defaultness increases without safety regression.
+%\end{description}
+
+
+\end{itemize}
+
+\section*{E. Deployment Practicality and Overhead}}
+
+\begin{itemize}[leftmargin=1.5em]
+\item[\ding{93}] \textbf{What is the end-to-end cost of FOXP2 at inference time (latency, memory, throughput)? Compare to prompt-only steering and to a small LoRA adapter.}
+\begin{description}
+\item[\ding{224}] \textbf{We report \emph{system-level} overhead (tokens/sec, latency, memory) under deployment-relevant batching, and we compare directly against prompt-only steering and a small LoRA.}
+Because FOXP2 is an \textbf{inference-time, layer-local activation edit}, the right question is not asymptotic complexity but \textbf{wall-clock and memory impact} in the same serving stack.
+
+\vspace{4pt}
+\textbf{What we measure.} For each method $m\in\{\textsc{Prompt},\textsc{FOXP2},\textsc{LoRA}\}$, we report:
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+\item \textbf{Throughput:} tokens/sec at batch sizes $B\in\{1,4,8,16\}$ (and fixed max sequence length).
+\item \textbf{Latency:} end-to-end per-request latency (prefill + decode), reported as mean and p95.
+\item \textbf{Memory:} peak GPU memory and incremental memory vs baseline, decomposed into (i) model weights, (ii) KV cache, and (iii) method-specific buffers.
+\end{itemize}
+
+\vspace{4pt}
+\textbf{Where FOXP2 costs come from (and why they are bounded).}
+FOXP2 adds a small number of \textbf{deterministic linear ops} in a fixed layer window $\mathcal{W}$:
+\[
+\begin{aligned}
+h^{(\ell)} &\leftarrow h^{(\ell)} + \lambda\,P_{\mathcal{S}^{(\ell)}_{\ell_t}}h^{(\ell)}\\
+&- \lambda'\,P_{\mathcal{S}^{(\ell)}_{\mathrm{en}}}h^{(\ell)},\\
+&\ell\in\mathcal{W}.
+\end{aligned}
+\]
+Operationally this is implemented with cached projection factors (or low-rank matrices), so the incremental compute is \textbf{linear in hidden size} per edited layer and does \textbf{not} scale with vocabulary. Memory overhead is dominated by storing the small set of projection parameters and masks, which is \textbf{constant per checkpoint} and independent of sequence length.
+
+\vspace{4pt}
+\textbf{Baselines for comparison.}
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+\item \textbf{Prompt-only steering:} zero compute/memory overhead beyond longer prompts; may increase prefill time proportional to added prompt tokens.
+\item \textbf{Small LoRA:} adds low-rank adapter matmuls at multiple layers (often more widespread than FOXP2’s fixed $\mathcal{W}$), plus additional weight memory; overhead depends on rank and placement.
+\end{itemize}
+
+\vspace{4pt}
+\textbf{Deployment claim criteria.}
+We only claim “practical for deployment” if FOXP2 stays within an explicit overhead budget (reported in the paper), \textbf{preserves KV-cache semantics}, and does not reduce throughput beyond the tolerated margin at deployment batch sizes. In particular, FOXP2 is evaluated in the same serving configuration with caching enabled, and we verify the edit does not require recomputation of previously cached keys/values.
+\end{description}
+
+
+\item[\ding{93}] \textbf{Is the method compatible with typical production stacks (KV caching, speculative decoding, batching)? Does editing intermediate activations break optimizations?}
+\begin{description}
+\item[\ding{224}] \textbf{Yes—FOXP2 is implemented as a deterministic, layer-local edit that does \emph{not} invalidate standard serving invariants.}
+We apply the edit at a \textbf{fixed position} (the prompt boundary) and within a \textbf{fixed layer window} $\mathcal{W}$, so the intervention is \emph{forward-only} and does not require recomputing any previously produced activations.
+
+\vspace{4pt}
+\textbf{KV caching.} FOXP2 never retroactively changes cached keys/values. The edit is applied to the current-step hidden state $h^{(\ell)}_t$ during the forward pass (for $t$ at the prompt end and subsequent decode steps, depending on the configured policy), so the cache remains valid because:
+\[
+\begin{aligned}
+(K_{\le t-1},V_{\le t-1}) &\quad \text{untouched},\\
+(K_t,V_t) &\quad \text{computed once}\\
+&\quad \text{from the edited forward} \\
+&\quad \text{pass}.
+\end{aligned}
+\]
+Thus caching semantics are preserved: past tokens’ K/V are reused exactly as stored, and only the current token’s K/V reflect the current forward computation.
+
+\vspace{4pt}
+\textbf{Batching.} The edit is a pure function applied per sequence (masked by target language and layer), so it composes naturally with dynamic batching. There is no cross-request state and no dependence on batch composition.
+
+\vspace{4pt}
+\textbf{Speculative decoding.} When speculative decoding is used, we apply FOXP2 \textbf{consistently} to both the draft and verifier (or to the verifier only, depending on deployment choice), but \emph{never} in a way that creates a mismatch between the distributions the two stages assume. Concretely, we require the same edit policy (window $\mathcal{W}$, directions, strengths) on both paths when both contribute logits; otherwise we disable FOXP2 on the draft path and keep it only on the final scoring path, and we report this as a constraint.
+
+\vspace{4pt}
+\textbf{Hard constraints.} If a serving stack applies optimizations that assume \emph{exact} intermediate activations (e.g., fused kernels with restricted hooks), FOXP2 requires hooks at the specified layers. Any such incompatibility is reported explicitly as a deployment constraint (rather than hand-waving “should work”).
+\end{description}
+
+
+\item[\ding{93}] \textbf{How often do you need to recompute $N,S,W$? Per checkpoint? Per tokenizer? Per domain?}
+\begin{description}
+\item[\ding{224}] \textbf{We specify a strict recomputation contract: $N,S,W$ are \emph{pinned} to the model, tokenizer, and hook.}
+Concretely, $(\mathcal{N}_{\ell_t},\mathcal{S}^{(\ell)}_{\ell_t},\mathcal{W})$ are valid only under a fixed triple: (\texttt{checkpoint\_id},\ \texttt{tokenizer\_hash},\ \texttt{hook\_spec}). \\
+Any change to \textbf{(i) checkpoint}, \textbf{(ii) tokenizer/version}, or \textbf{(iii) hook definition} (layer choice, activation type, pre/post-norm location) \textbf{requires recomputation}.
+
+\vspace{4pt}
+\textbf{Domain changes.} A pure domain shift does \emph{not} automatically require recomputation: we reuse the same $N,S,W$ and treat transfer as an empirical question. We only trigger recomputation if lightweight stability monitors drift, e.g.:
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+\item \textbf{subspace drift:} principal-angle deviation of the top-$r$ subspace exceeds a threshold,
+\item \textbf{effect drift:} $\Delta_{\mathrm{gain}}$ falls outside the expected band on a small canary set.
+\end{itemize}
+
+\vspace{4pt}
+\textbf{Summary.} \textbf{Per checkpoint/tokenizer/hook: recompute.} \textbf{Per domain: reuse by default, monitor, and recompute only if stability degrades.}
+\end{description}
+
+
+
+
+
+
+
+\end{itemize}
+

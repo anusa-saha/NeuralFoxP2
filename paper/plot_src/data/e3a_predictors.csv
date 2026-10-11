@@ -1,0 +1,7 @@
+predictor,mean_auc,sd,mean_lo,mean_hi
+First-token argmax,.733,.039,.701,.764
+Perplexity ratio,.724,.036,.693,.755
+dM at selected k,.819,.049,.788,.850
+Prefix LID k=3,.787,.042,.755,.818
+Prefix LID k=20,.823,.042,.792,.854
+LLM appropriateness judge,.834,.043,.803,.865

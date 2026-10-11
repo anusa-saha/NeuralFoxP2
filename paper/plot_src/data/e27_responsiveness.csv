@@ -1,0 +1,7 @@
+model,tau,lo,hi
+Llama-3.1-8B-Instruct,0.75,0.67,0.81
+Gemma-2-9B-it,0.69,0.60,0.77
+Gemma-2-2B-it,0.66,0.56,0.75
+Qwen3-8B,0.77,0.69,0.83
+All (vs full-response),0.72,0.66,0.77
+All (vs human correctness),0.64,0.51,0.74

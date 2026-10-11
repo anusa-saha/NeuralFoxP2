@@ -1,0 +1,9 @@
+model,lang,jaccard,angle,null95
+Llama-3.1-8B-Instruct,hi,0.31,28.4,0.18
+Gemma-2-9B-it,hi,0.27,33.1,0.17
+Gemma-2-2B-it,hi,0.24,37.6,0.16
+Qwen3-8B,hi,0.34,25.9,0.19
+Llama-3.1-8B-Instruct,ru,0.29,31.7,0.18
+Gemma-2-9B-it,ru,0.26,35.2,0.17
+Gemma-2-2B-it,ru,0.22,39.4,0.15
+Qwen3-8B,ru,0.32,27.8,0.18

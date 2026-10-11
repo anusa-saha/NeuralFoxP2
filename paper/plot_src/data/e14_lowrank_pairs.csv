@@ -1,0 +1,6 @@
+stat,real,nullA,nullB
+median_reff,8.3,12.7,18.5
+p25,7.1,11.6,17.0
+p75,9.5,13.8,20.1
+median_var_top_r,79.0,67.2,55.4
+pairs_below_nullB_p5,20/24,,

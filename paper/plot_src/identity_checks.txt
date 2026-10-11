@@ -1,0 +1,52 @@
+PASS  Table 2 M0 dM per model == E1 C1
+      E1 [-0.54 -0.57 -0.6  -0.46] vs T2 [-0.54 -0.57 -0.6  -0.46]
+FAIL  Table 2 M0 Full% == E1 C1 macro target rate
+      E1 1.55 vs T2 1.9
+FAIL  E5 P(stay) at t=0 == E1 full-response rate
+      E5 t=0 [26.4 26.2 15.4 30.3]% vs E1 [1.75 2.   0.87 1.6 ]%
+PASS  Table 3 Avg == Table 2 Full%
+      all methods
+PASS  Table 3 Avg == mean of language columns
+      all methods
+PASS  Table 4 full dM == Table 2 M9 mean dM
+      0.038 vs 0.0375
+PASS  Table 4 full leakage, KL == Table 2 M9
+      leak 0.026/0.026, KL 0.073/0.073
+FAIL  Table 5 'Nothing' macro == Table 2 M1 Full%
+      14.8 vs 15.7
+PASS  Table 2 dS == mean of six utility benchmarks
+      M3 M4 M7 M8 M9
+FAIL  Table 1 dM AUC == Figure 2a at k=3
+      Fig 2a 0.837 vs Table 1 0.819
+PASS  Section 3.2 horizon == Table 17 selected k
+      selected k = 3; paper uses 3
+PASS  Figure 5 operating points == Table 2
+      M4-M7, M9
+PASS  Figure 16 full-response points == Table 2 Full%
+      all 11 methods; M9 leakage too
+PASS  E31 operating point == Table 4 full row (DEFAULT, leak, KL)
+      5 sweeps at the operating point
+FAIL  E31 DEFAULT at gamma=0 == unedited DEFAULT (E13 full - E25 gain)
+      gamma=0 gives 0.214; implied unedited 0.014
+FAIL  E31 beta/lambda=0 == Table 4 ablation (c) promotion only
+      0.348 vs 0.522
+PASS  E34 greedy DEFAULT macro == Table 4 full DEFAULT
+      0.587 vs 0.587
+PASS  E35 default-template row == Table 2 (M0, M3, M9)
+      1.9/24.5/58.7
+FAIL  E34 DEFAULT - E25 gain gives a valid unedited DEFAULT per model
+      implied unedited DEFAULT {'Llama-3.1-8B-Instruct': 0.041, 'Gemma-2-9B-it': 0.014, 'Gemma-2-2B-it': -0.002, 'Qwen3-8B': 0.005}
+WARN  Table 15 r_eff median == Table 12 pairs median
+      E6 median 8.55 vs E14 8.3 (state which layer each refers to)
+PASS  Cue pool determined n <= items x 6 levels
+      max n 592; 200 items x 6 levels would give 1,200
+FAIL  Figure 6 diagonal == Table 3 M9 gain over M0
+      Fig 6 [42.8 40.6 37.9 39.5 35.2 33.1] vs Table 3 [64.4 61.1 55.8 58.2 52.6 48.3]
+FAIL  Table 2 M9 leakage == Figure 6 off-diagonal mean (fraction)
+      Fig 6 0.0065 vs Table 2 0.026
+WARN  Table 13 single-layer base row differs from full multi-layer M9
+      base-trained single-layer row equals the full M9 result (58.7%, -0.28); confirm it is a single-layer edit
+PASS  Every interval contains its point estimate
+      10 intervals
+
+14 pass, 9 fail, 2 warn

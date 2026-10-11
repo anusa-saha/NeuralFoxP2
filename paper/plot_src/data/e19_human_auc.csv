@@ -1,0 +1,9 @@
+predictor,auc_h
+First-token argmax,.706
+Perplexity ratio,.731
+dM,.814
+dL,.802
+S,.827
+Prefix LID k=3,.779
+Prefix LID k=20,.842
+LLM judge,.851

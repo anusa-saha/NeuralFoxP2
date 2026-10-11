@@ -1,0 +1,5 @@
+model,real,null_mean,null_sd,null_p95
+Llama-3.1-8B-Instruct,0.56,0.006,0.025,0.048
+Gemma-2-9B-it,0.60,0.011,0.029,0.059
+Gemma-2-2B-it,0.55,0.003,0.031,0.052
+Qwen3-8B,0.58,0.009,0.026,0.053

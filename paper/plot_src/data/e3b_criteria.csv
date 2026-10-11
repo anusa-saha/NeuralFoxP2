@@ -1,0 +1,13 @@
+model,criterion,pearson,spearman,n
+Llama-3.1-8B-Instruct,Full-response LID,.771,.855,591
+Llama-3.1-8B-Instruct,Downstream task score,.311,.202,600
+Llama-3.1-8B-Instruct,LLM-judge appropriateness,.708,.788,598
+Gemma-2-9B-it,Full-response LID,.828,.772,578
+Gemma-2-9B-it,Downstream task score,.231,.152,569
+Gemma-2-9B-it,LLM-judge appropriateness,.680,.601,550
+Gemma-2-2B-it,Full-response LID,.822,.786,556
+Gemma-2-2B-it,Downstream task score,.368,.175,582
+Gemma-2-2B-it,LLM-judge appropriateness,.687,.714,566
+Qwen3-8B,Full-response LID,.906,.772,569
+Qwen3-8B,Downstream task score,.281,.271,581
+Qwen3-8B,LLM-judge appropriateness,.635,.686,596

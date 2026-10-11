@@ -1,0 +1,6 @@
+model,real_reff,nullA,nullB,var_top_r
+Llama-3.1-8B-Instruct,8.7,12.9,18.6,78.4
+Gemma-2-9B-it,9.4,13.7,19.8,75.9
+Gemma-2-2B-it,7.2,11.8,17.1,81.6
+Qwen3-8B,8.1,12.5,18.2,79.3
+Macro,8.4,12.8,18.4,78.8

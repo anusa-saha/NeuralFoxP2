@@ -1,0 +1,5 @@
+model,sampled,template,no_system,minimal,two_turns
+Llama-3.1-8B-Instruct,0.018,-0.024,-0.012,-0.039,-0.021
+Gemma-2-9B-it,0.026,0.031,0.018,0.044,0.031
+Gemma-2-2B-it,-0.011,0.038,0.026,0.052,0.036
+Qwen3-8B,0.014,-0.019,-0.009,-0.028,-0.020

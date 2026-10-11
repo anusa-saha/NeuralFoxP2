@@ -1,0 +1,4 @@
+control,metric,value,n
+English forcing t=3,P(stay English to end),.973,100
+Translation robustness system A,P(stay target),.850,100
+Translation robustness system B,P(stay target),.840,100

@@ -1,0 +1,5 @@
+model,vtgt,ven,coverage,agreement
+Llama-3.1-8B-Instruct,4820,5140,95.8,94.2
+Gemma-2-9B-it,5210,5480,96.7,95.1
+Gemma-2-2B-it,4360,4790,92.6,91.8
+Qwen3-8B,5060,5320,94.9,94.6

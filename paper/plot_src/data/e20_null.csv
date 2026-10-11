@@ -1,0 +1,5 @@
+model,max_abs_logit_diff,identical_greedy_pct
+Llama-3.1-8B-Instruct,0.000000,100.0
+Gemma-2-9B-it,0.000000,100.0
+Gemma-2-2B-it,0.000000,100.0
+Qwen3-8B,0.000000,100.0

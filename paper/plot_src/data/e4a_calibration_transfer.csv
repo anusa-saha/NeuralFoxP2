@@ -1,0 +1,5 @@
+fitted_on,Llama-3.1-8B-Instruct,Gemma-2-9B-it,Gemma-2-2B-it,Qwen3-8B
+Llama-3.1-8B-Instruct,.048,.081,.093,.098
+Gemma-2-9B-it,.076,.071,.088,.095
+Gemma-2-2B-it,.096,.083,.061,.110
+Qwen3-8B,.083,.087,.100,.059

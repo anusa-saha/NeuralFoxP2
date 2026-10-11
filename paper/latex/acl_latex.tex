@@ -57,6 +57,10 @@
 \newcommand{\Ddev}{\ensuremath{\mathcal{D}_{\mathrm{dev}}}\xspace}
 \newcommand{\Ddisc}{\ensuremath{\mathcal{D}_{\mathrm{disc}}}\xspace}
 \newcommand{\Wdec}{\ensuremath{W_{\mathrm{dec}}}}
+% Prompt sets (formerly C1, C2, C3)
+\newcommand{\nocue}{\textsc{No-Cue}\xspace}
+\newcommand{\neutral}{\textsc{Neutral}\xspace}
+\newcommand{\intent}{\textsc{Intent}\xspace}
 
 \title{Neural FOXP2: Measuring and Steering the Default Response Language\\ of Multilingual Language Models}
 
@@ -68,25 +72,20 @@
 \maketitle
 
 \begin{abstract}
-When a prompt carries no cue about the language of the answer, multilingual language models usually reply in English, even when the deployment calls for another language. We study this \emph{default response language}. First, we introduce an early-decoding defaultness score that predicts the language of the finished response from the first three decoding steps, and we validate it with fifteen tests of predictive, convergent, discriminant and known-groups validity, calibration, reliability and robustness to token-set construction. Second, we propose \foxp, an inference-time edit that selects language features in frozen public sparse autoencoders, compresses them into a low-rank subspace, and applies a signed update within a selected band of layers, leaving the model's weights unchanged. Across four instruction-tuned models and six target languages (Spanish, French, Chinese, Russian, Hindi and Arabic), \foxp raises the share of responses written entirely in the target language from 1.9\% to 58.7\%. At matched distributional shift, the strongest activation-steering baseline reaches 44.7\%; LoRA fine-tuning reaches 60.2\%, but it shifts the output distribution further, leaks more into other languages and costs more utility. \foxp changes utility by $-0.28$ points on average across six benchmarks and leaves refusal rates unchanged within their confidence intervals. Code and data will be released upon acceptance.
+When a prompt carries no cue about the language of the answer, multilingual language models usually reply in English, even when the deployment calls for another language. We study this \emph{default response language}. First, we introduce an early-decoding defaultness score that predicts the language of the finished response from the first three decoding steps, and we validate it with fifteen tests of predictive, convergent, discriminant and known-groups validity, calibration, reliability and robustness to token-set construction. Second, we propose \foxp, an inference-time edit that selects language features in frozen public sparse autoencoders, compresses them into a low-rank subspace, and applies a signed update within a selected band of layers, leaving the model's weights unchanged. Across four instruction-tuned models and six target languages (Spanish, French, Chinese, Russian, Hindi and Arabic), \foxp raises the share of responses written entirely in the target language from 1.9\% to 58.7\%. At matched distributional shift, the strongest activation-steering baseline reaches 44.7\%; LoRA fine-tuning reaches 60.2\%, but it shifts the output distribution further, leaks more into other languages and costs more utility. \foxp changes utility by $-0.28$ points on average across six benchmarks and leaves refusal rates unchanged within their confidence intervals.
 \end{abstract}
 
 % ============================================================================
 \section{Introduction}
 \label{sec:introduction}
 
-Multilingual language models write fluently in many languages, yet when a request carries no explicit language instruction and no lexical or script cue, they tend to answer in English \citep{marchisio-etal-2024-understanding,shani-basirat-2025-language}. This matters whenever the output language is fixed by the deployment rather than by the user's wording: a regional assistant, a localized product, or a public service that must respond in an official language. English-dominated training data and tokenizers that need many more tokens for some languages than for English \citep{petrov2023language} are commonly cited as contributing causes.
+Ask a multilingual language model a question without saying which language you want the answer in, and it will almost always answer in English \citep{marchisio-etal-2024-understanding,shani-basirat-2025-language}. Often this is the right behavior, but not when the deployment fixes the output language in advance: a regional assistant, a localized product or a public service that must respond in an official language. There, the habit of falling back to English is a failure, even though the same model writes fluently in the required language. English-dominated training data and tokenizers that need many more tokens for some languages than for English \citep{petrov2023language} are commonly cited as contributing causes.
 
-We call the language a model chooses in this situation its \emph{default response language}. Controlling it raises two questions. How should the default be measured, so that a measurement taken early in decoding reflects the language of the finished response? And can the default be changed at inference time, cheaply, selectively and without degrading the model?
+We call the language a model chooses in this situation its \emph{default response language}, and ask two questions about it. Can the default be read off early in decoding, in a way that reliably reflects the language of the finished response? And can it be changed at inference time, cheaply, selectively and without degrading what the model already does well?
 
-Prior work points to an early decision. Intermediate representations of several model families pass through an English-aligned space before becoming language-specific \citep{wendler-etal-2024-llamas}, and decoding analyses find that the response language is largely settled within the first tokens \citep{nie-etal-2025-mechanistic}. Existing remedies act less directly. Continued pretraining and multilingual instruction tuning \citep{lu-etal-2024-llamax,ustun-etal-2024-aya,shaham-etal-2024-multilingual} improve multilingual ability but require retraining; prompting requires control over every request; and activation steering \citep{rimsky-etal-2024-steering,turner2024steeringlanguagemodelsactivation} and language-neuron editing \citep{tang-etal-2024-language} can change the output language but have not been compared under a common protocol that also measures leakage into other languages, utility and safety.
+There are good reasons to expect an early, compact decision. Intermediate representations of several model families pass through an English-aligned space before becoming language-specific \citep{wendler-etal-2024-llamas}, and decoding analyses find that the response language is largely settled within the first tokens \citep{nie-etal-2025-mechanistic}. Existing remedies act less directly. Continued pretraining and multilingual instruction tuning \citep{lu-etal-2024-llamax,ustun-etal-2024-aya,shaham-etal-2024-multilingual} improve multilingual ability but require retraining. Prompting requires control over every request. Activation steering \citep{rimsky-etal-2024-steering,turner2024steeringlanguagemodelsactivation} and language-neuron editing \citep{tang-etal-2024-language} can change the output language, but they have not been compared under a common protocol that also accounts for leakage into other languages, utility and safety.
 
-\paragraph{Contributions.}
-\begin{enumerate}[leftmargin=*,itemsep=1pt,topsep=2pt]
-  \item \textbf{A validated defaultness score.} We define an early-decoding score of the default response language (\S\ref{sec:measuring}) and validate it with fifteen tests on 24 model--language pairs (\S\ref{subsec:metric-validation}, Appendix~\ref{app:metric-suite}).
-  \item \textbf{A gradient-free steering method.} \foxp (\S\ref{sec:method}) builds a sparse, low-rank edit from frozen public sparse-autoencoder (SAE) dictionaries and applies it additively inside a selected window of layers.
-  \item \textbf{A controlled comparison.} We compare \foxp with prompting, activation steering, neuron and SAE-feature steering, and LoRA fine-tuning on four models and six languages, reporting full-response language, leakage, utility, intent respect, safety and human judgments, together with ablations and a test of whether the model itself uses the steering subspace (\S\ref{sec:results}).
-\end{enumerate}
+This paper answers both questions and makes three contributions. We begin with measurement and define a defaultness score that compares the probability mass a model places on target-language and English tokens over its first three decoding steps (Section~\ref{sec:measuring}). Because a score is only useful if it tracks what users eventually read, we validate it with fifteen tests on 24 model--language pairs (Section~\ref{subsec:metric-validation}). Building on this score, we then introduce \foxp (Section~\ref{sec:method}), a gradient-free edit that selects language features in frozen public sparse-autoencoder (SAE) dictionaries, compresses them into a low-rank subspace, and adds a signed update to the residual stream inside a window of layers chosen on development data. Finally, we compare \foxp under one protocol with prompting, activation steering and LoRA fine-tuning on four models and six languages, measuring language, leakage, utility, intent respect, safety and human judgments, and we test whether the model itself relies on the steering subspace (Section~\ref{sec:results}). The resulting picture is consistent: \foxp moves the default nearly as far as fine-tuning does, at a lower distributional cost and with less leakage, and it does so more effectively than any other inference-time method we test.
 
 \begin{figure*}[t]
   \centering
@@ -105,13 +104,13 @@ Prior work points to an early decision. Intermediate representations of several 
 \label{sec:related-work}
 
 \paragraph{Language choice and language confusion.}
-Multilingual models show systematic preferences for some languages \citep{shani-basirat-2025-language}, carry English-like patterns into other languages \citep{guo-etal-2025-large}, and perform unevenly across languages \citep{hu-etal-2025-quantifying}. \citet{marchisio-etal-2024-understanding} introduce the Language Confusion Benchmark (LCB), which scores whether a response is in the requested language; we use it as an external criterion. Reasoning traces of multilingual models also drift toward English \citep{saji-etal-2026-reasoning,zhao2025languagemorelanguagereasoningdisentanglement}. Unlike response-level scores such as LCB, our score is computed from the first decoding steps, before the response exists.
+Multilingual models show systematic preferences for some languages \citep{shani-basirat-2025-language}, carry English-like patterns into other languages \citep{guo-etal-2025-large}, and perform unevenly across languages \citep{hu-etal-2025-quantifying}. \citet{marchisio-etal-2024-understanding} introduce the Language Confusion Benchmark (LCB), which scores whether a response is in the requested language; we use it as an external criterion. Reasoning traces of multilingual models also drift toward English \citep{saji-etal-2026-reasoning,zhao2025languagemorelanguagereasoningdisentanglement}. Unlike LCB, our score is computed from the first decoding steps, cheaply enough to guide a search over interventions.
 
 \paragraph{Language-specific components.}
-Language identity has been localized to individual neurons \citep{tang-etal-2024-language,kojima-etal-2024-multilingual,gurgurov-etal-2025-language,rahmanisa-etal-2025-unveiling,tezuka-inoue-2025-transfer} and to low-rank subspaces \citep{xie-etal-2022-discovering}, and alignment training changes these representations \citep{zhang-etal-2026-alignment}. Whether such components support cross-lingual behavior remains debated \citep{mondal2025language,zhao2024how}. We treat language-selective components only as candidates and test their effect causally.
+Language identity has been localized to individual neurons \citep{tang-etal-2024-language,kojima-etal-2024-multilingual,gurgurov-etal-2025-language,rahmanisa-etal-2025-unveiling,tezuka-inoue-2025-transfer} and to low-rank subspaces \citep{xie-etal-2022-discovering}, and alignment training changes these representations \citep{zhang-etal-2026-alignment}. Whether such components support cross-lingual behavior remains debated \citep{mondal2025language,zhao2024how}. We therefore keep only language-selective candidates that pass a causal test.
 
 \paragraph{Activation steering and sparse autoencoders.}
-Adding or removing directions in the residual stream changes model behavior without training \citep{turner2024steeringlanguagemodelsactivation,rimsky-etal-2024-steering,zou2023representation,li2023inference,arditi2024refusal}, including the language of the output \citep{sundar-etal-2025-steering,ravisankar-etal-2026-map}. Sparse autoencoders decompose activations into sparse, often interpretable features \citep{elhage2022toymodelssuperposition,cunningham2023sparse,bricken2023towards,templeton2024scaling}, and several studies identify and steer language features in SAE dictionaries \citep{deng-etal-2025-unveiling,chou2025causallanguagecontrolmultilingual,andrylie2026sparseautoencoderscapturelanguagespecific,zhong-etal-2026-language,al-ghussin-etal-2026-multilingual,wong2026langfirdiscoveringsparselanguagespecific}. \citet{pmlr-v267-wu25a} find that simple difference-in-means steering and prompting often outperform SAE-based steering; we therefore include both as baselines and compare methods at matched distributional shift. \foxp differs from single-feature SAE steering by combining a sparse feature support with a low-rank subspace and a layer window chosen on development data.
+Adding or removing directions in the residual stream changes model behavior without training \citep{turner2024steeringlanguagemodelsactivation,rimsky-etal-2024-steering,zou2023representation,li2023inference,arditi2024refusal}, including the language of the output \citep{sundar-etal-2025-steering,ravisankar-etal-2026-map}. Sparse autoencoders decompose activations into sparse, often interpretable features \citep{elhage2022toymodelssuperposition,cunningham2023sparse,bricken2023towards,templeton2024scaling}, and several studies identify and steer language features in SAE dictionaries \citep{deng-etal-2025-unveiling,chou2025causallanguagecontrolmultilingual,andrylie2026sparseautoencoderscapturelanguagespecific,zhong-etal-2026-language,al-ghussin-etal-2026-multilingual,wong2026langfirdiscoveringsparselanguagespecific}. \citet{pmlr-v267-wu25a} find that simple difference-in-means steering and prompting often outperform SAE-based steering; we therefore include both as baselines and compare all methods at matched distributional shift. \foxp differs from single-feature SAE steering by combining a sparse feature support with a low-rank subspace and a layer window chosen on development data.
 
 % ============================================================================
 \section{Measuring the Default Response Language}
@@ -120,12 +119,12 @@ Adding or removing directions in the residual stream changes model behavior with
 \subsection{Setting}
 \label{subsec:setting}
 
-A deployment specifies a target language $\ell_t$, and requests arrive without an instruction to use it. We evaluate three prompt conditions, all on held-out prompts. \textbf{C1 (English, no cue)} contains English requests that do not mention any language, drawn from seven task types: question answering, explanation, summarization, writing, advice, coding and reasoning. \textbf{C2 (language-neutral)} contains inputs without natural-language cues, such as arithmetic, code or lists of names. \textbf{C3 (explicit intent)} contains requests that explicitly ask for English or are written in another suite language, and measures whether an edit overrides a clear user intent. C1 is the main setting; sources, sizes and examples are in Appendix~\ref{app:data}.
+A deployment specifies a target language $\ell_t$, and requests arrive without an instruction to use it. We evaluate three sets of held-out prompts. \nocue prompts are English requests that do not mention any language, drawn from seven task types: question answering, explanation, summarization, writing, advice, coding and reasoning. They are the everyday case and our main setting. \neutral prompts contain no natural language at all (arithmetic, code, lists of names) and test whether the default persists without English in the input. \intent prompts explicitly ask for English or are written in another suite language, and measure how far an edit overrides a clear preference. Sources, sizes and examples are in Appendix~\ref{app:data}.
 
 \subsection{Defaultness score}
 \label{subsec:metric}
 
-Let $V_{\mathrm{tgt}}$ and $V_{\mathrm{en}}$ be the tokens diagnostic of the target language and of English for a given tokenizer, and let $w(u)\in[0,1]$ down-weight tokens diagnostic of neither, such as digits, punctuation, shared subwords and named-entity fragments (Appendix~\ref{app:metrics}). For prompt $x$, decoding step $t$ and class $c\in\{\mathrm{tgt},\mathrm{en}\}$, the class mass is
+The idea behind the score is simple: if the model is about to answer in the target language, it should place probability on target-language tokens from the very first steps of decoding. Let $V_{\mathrm{tgt}}$ and $V_{\mathrm{en}}$ be the tokens diagnostic of the target language and of English for a given tokenizer, and let $w(u)\in[0,1]$ down-weight tokens diagnostic of neither, such as digits, punctuation, shared subwords and named-entity fragments (Appendix~\ref{app:metrics}). For prompt $x$, decoding step $t$ and class $c\in\{\mathrm{tgt},\mathrm{en}\}$, the class mass is
 \begin{equation}
 M_c(x,t)=\sum_{u\in V_c} w(u)\,p_\theta\big(u \mid x, y_{<t}\big),
 \label{eq:mass}
@@ -138,54 +137,43 @@ where $y_{<t}$ is the greedy prefix. The defaultness score averages the differen
 A positive score means that the model places more early probability on the target language than on English. We also define a log-odds form and a target-share form (Appendix~\ref{app:metric-forms}). The form and the horizon were fixed on \Ddev by predictive validity before any evaluation run; the selected horizon is $T=\{1,2,3\}$.
 \finding{Resolve before submission: on \Ddev the target-share form $S$ has AUC at or above \dM at every horizon (.848 vs .843 at $k{=}3$; Table~\ref{tab:app-metric-form}), so the D1 rule as written selects $S$. Either make $S$ the primary form, or state the tie-break that selects \dM and that it was fixed in advance.}
 
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{Figures/revision/fig_horizon.pdf}
+  \caption{\textbf{Why three decoding steps.} (a) AUC for predicting the language of the finished response from the first $k$ steps (\Deval, 95\% bands): \dM saturates at $k{=}3$, whereas language identification on the prefix needs more tokens and the first-token argmax never catches up. (b) Blue: probability that an unedited response stays in the target language after its first $t$ tokens are forced into it (mean, with one grey line per model). Orange: share of \foxp responses whose first $t$ tokens are in the target language. Commitment is largely in place, and the steered opening is strongest, at three tokens. Dotted line: the selected horizon.}
+  \label{fig:horizon}
+\end{figure}
+
+\paragraph{Why three decoding steps.}
+The horizon balances two risks. Too short, and the score sees only the first token, which can be a formatting mark or the start of a named entity and says little about the language that follows (Appendix~\ref{app:disagreement}). Too long, and the score stops measuring a choice and starts measuring its consequences: once a few tokens are emitted in one language, later distributions are conditioned on that prefix and largely repeat what is known, while every extra step costs a forward pass, also in each causal probe of Stage~I. Three observations place the balance at three steps (Figure~\ref{fig:horizon}). First, prediction saturates: on \Ddev the AUC of \dM rises from .778 at one step to .817 at two and .843 at three, then stays flat (.843 at five, .851 at ten), so our pre-registered rule, the smallest horizon within .01 of the best AUC, selects three; language identification on the same tokens lags (.816) and needs ten to catch up. Second, the model commits within this window: when the first $t$ tokens are forced into the target language, the probability that the response stays there climbs from .246 ($t{=}0$) to .773 ($t{=}3$) and only to .866 ($t{=}10$), so three tokens deliver 85\% of the effect of ten (82--89\% per model). Third, under \foxp the share of target-language openings peaks at exactly three tokens (74.6\%) and then declines; a longer horizon would blend the decision with later drift, which we measure separately through the full-response rate. Appendix~\ref{app:horizon} gives the full analysis.
+
 \paragraph{Outcome measures.}
-Because \dM is a proxy, we also measure the language of the generated text. The \emph{full-response rate}, our primary outcome, is the share of responses in which every sentence of at least 20 characters is identified as the target language. \default combines the score with the opening of the response: a prompt counts as a success when $\Delta M>0$ and a language identifier (GlotLID; \citealp{kargaran2023glotlid}) assigns the target language to the first \res{20} generated tokens. We also report the line-level pass rate of LCB \citep{marchisio-etal-2024-understanding}.
+Because \dM is a proxy, we also report the language of the generated text. The \emph{full-response rate}, our primary outcome, is the share of responses in which every sentence of at least 20 characters is identified as the target language; it is deliberately strict, since a response that switches back to English halfway through is a failure for a user who cannot read English. \default combines the score with the opening of the response: a prompt counts as a success when $\Delta M>0$ and a language identifier (GlotLID; \citealp{kargaran2023glotlid}) assigns the target language to the first \res{20} generated tokens. We also report the line-level pass rate of LCB \citep{marchisio-etal-2024-understanding}.
 
 \subsection{Validating the score}
 \label{subsec:metric-validation}
 
-We validate \dM with fifteen tests (D1--D15) on all 24 model--language pairs (Appendix~\ref{app:metric-suite}). They ask whether the score predicts the finished response and is calibrated (D3--D5), rises with the strength of a language cue (D6), is stable across paraphrases (D7), ignores properties it should not track (D8), separates closely related languages (D9), is robust to how token sets are built (D10--D12), ranks interventions as their outcomes do (D13), is insensitive to decoding and chat template (D14), and when it disagrees with the finished response (D15).
+We validate \dM with fifteen tests on all 24 model--language pairs (Appendix~\ref{app:metric-suite}), covering prediction and calibration, sensitivity to cue strength, reliability, discriminant and close-language validity, robustness to token sets, decoding and template, and an analysis of disagreements with the finished response.
 
-\begin{table}[t]
-  \centering
-  \footnotesize
-  \setlength{\tabcolsep}{4pt}
-  \begin{tabular}{@{}lcccl@{}}
-    \toprule
-    \textbf{Predictor} & \textbf{$\rho$}$\uparrow$ & \textbf{AUC}$\uparrow$ & \textbf{AUC$_{\text{h}}$}$\uparrow$ & \textbf{Cost} \\
-    \midrule
-    \dM (ours)            & .796 & .819 & .814 & 3 steps \\
-    Log-odds form         & & & .802 & 3 steps \\
-    Target-share form     & & & .827 & 3 steps \\
-    First-token argmax    & & .733 & .706 & 1 step \\
-    Prefix LID, 3 tokens  & & .787 & .779 & 3 steps \\
-    Prefix LID, 20 tokens & & .823 & .842 & 20 steps \\
-    Perplexity ratio      & & .724 & .731 & 2 passes \\
-    LLM judge             & & .834 & .851 & full output \\
-    \bottomrule
-  \end{tabular}
-  \caption{\textbf{Predicting the language of the finished response}, macro over 24 model--language pairs. $\rho$: Spearman correlation with the full-response label (mean over models); AUC: against the full-response label; AUC$_{\text{h}}$: against human language judgments (\S\ref{subsec:human}). Per-pair spread and per-model correlations are in Table~\ref{tab:app-criterion}.}
-  \label{tab:metric-validity}
-\end{table}
 
 \paragraph{Prediction and calibration.}
-At the selected horizon, \dM predicts the language of the finished response with a mean AUC of .819 (Table~\ref{tab:metric-validity}). It outperforms predictors of equal or lower cost, namely language identification on the first three tokens (.787), first-token argmax (.733) and the perplexity ratio (.724), and it is matched only by predictors that read far more output: identification on the first 20 tokens (.823) and an LLM judge of the full response (.834). Against human language judgments, the four strongest predictors keep the same order. Accuracy rises steeply up to three decoding steps and changes little beyond (Appendix~\ref{app:metric-forms}). An isotonic map fitted per model converts \dM into a probability with an expected calibration error of .048--.071; maps transferred across models are worse (.076--.110), so calibration is model-specific (Table~\ref{tab:app-calibration}).
+Three steps of probability mass largely stand in for a full response. At the selected horizon, \dM predicts the language of the finished response with a mean AUC of .819 (Table~\ref{tab:metric-validity} in Appendix~\ref{app:metric-suite}). It outperforms every predictor of equal or lower cost, namely language identification on the first three tokens (.787), first-token argmax (.733) and the perplexity ratio (.724), and it is matched only by predictors that read far more output: identification on the first 20 tokens (.823) and an LLM judge of the full response (.834). The same ordering holds against human language judgments. An isotonic map fitted per model converts \dM into a probability with an expected calibration error of .048--.071; maps transferred across models are worse (.076--.110), so probability readings should use each model's own map, while rankings and differences remain comparable across models (Table~\ref{tab:app-calibration}).
 
 \paragraph{Construct validity.}
-\dM rises with the strength of a language cue, from $-0.571$ when the prompt has no cue to $0.030$ when it is written entirely in the target language, monotonically for five of the six languages (\res{Jonckheere--Terpstra statistic and $p$}). It is stable across paraphrases (ICC 0.71--0.82) and across random halves of the token sets (split-half reliability 0.85--0.92), and it is nearly unrelated to prompt length, task type and answer quality (Table~\ref{tab:app-reliability}). It separates closely related languages: Spanish \dM on French responses is $+0.08$, against $+0.42$ on Spanish responses (Appendix~\ref{app:metric-suite}). Finally, the main result does not depend on how token sets are built: the \foxp gain in \default ranges from 0.495 to 0.583 across four constructions, while random token sets of matched size and frequency give gains whose 95th percentile is at most 0.059 (Appendix~\ref{app:metric-suite}).
+\dM rises with the strength of a language cue, from $-0.571$ when the prompt has no cue to $0.030$ when it is written entirely in the target language, monotonically for five of the six languages (\res{Jonckheere--Terpstra statistic and $p$}). It is stable across paraphrases (ICC 0.71--0.82) and across random halves of the token sets (split-half reliability 0.85--0.92), and it is nearly unrelated to prompt length, task type and answer quality (Table~\ref{tab:app-reliability}). It also separates closely related languages: Spanish \dM on French responses is $+0.08$, against $+0.42$ on Spanish responses (Appendix~\ref{app:metric-suite}). Finally, our main result does not depend on how token sets are built: the \foxp gain in \default ranges from 0.495 to 0.583 across four constructions, while random token sets of matched size and frequency give gains whose 95th percentile is at most 0.059.
 
 \subsection{How unedited models choose a language}
 \label{subsec:baseline-behavior}
 
-Without an edit, every model answers in English (Table~\ref{tab:app-baseline}). On C1 prompts, mean \dM is negative for all 24 pairs (macro $-0.542$), 81.7--89.1\% of responses are entirely in English, and no pair exceeds 3.9\% of responses in the target language. The default is strongest for Gemma-2-2B-it (mean \dM $-0.597$) and weakest for Qwen3-8B ($-0.458$); among languages, it is strongest for Russian ($-0.607$). Language-neutral inputs (C2) weaken the default without removing it: \dM stays negative for every pair (macro $-0.453$), and the share of English responses falls to 57.9--80.0\%, mostly in favor of Chinese.
+Without an edit, every model answers in English (Table~\ref{tab:app-baseline}). On \nocue prompts, mean \dM is negative for all 24 pairs (macro $-0.542$), 81.7--89.1\% of responses are entirely in English, and no pair exceeds 3.9\% of responses in the target language. The default is strongest for Gemma-2-2B-it (mean \dM $-0.597$) and weakest for Qwen3-8B ($-0.458$). Removing English from the input weakens the default without removing it: on \neutral prompts \dM stays negative for every pair (macro $-0.453$), and the share of English responses falls only to 57.9--80.0\%, mostly in favor of Chinese. English is not merely echoed from the prompt; it is the fallback.
 
-The choice is made early and then persists. When the first three tokens of the response are forced into the target language, 77.3\% of responses continue in it to the end; when three English tokens are forced, 97.3\% stay in English (Appendix~\ref{app:commitment}). Early commitment is what allows an early-decoding score to predict the finished response; it does not explain why the models choose English.
+The choice is made early and persists in both directions: with three English tokens forced, 97.3\% of responses stay in English (Appendix~\ref{app:commitment}). This commitment lets an early score predict the finished response, and it suggests where to intervene: an edit that shifts the first steps should carry through the response.
 
 % ============================================================================
 \section{\foxp}
 \label{sec:method}
 
-\foxp has three stages that use no gradients and update no weights. Stage~I selects SAE features that are both language-selective and causally able to raise defaultness. Stage~II compresses them into a low-rank subspace per layer and selects a contiguous window of layers. Stage~III applies a signed edit inside that window. The result is an artifact $(\mathcal{N}_{\ell_t},\{\mathcal{S}^{(\ell)}_{\ell_t}\},\mathcal{W})$ per model and target language, after which steering is a fixed forward hook.
+\foxp turns this observation into an intervention. It has three stages that use no gradients and update no weights. Stage~I finds SAE features that are both language-selective and causally able to raise defaultness. Stage~II compresses them into a low-rank subspace per layer and selects a contiguous window of layers in which to act. Stage~III applies a signed edit inside that window. The result is a fixed forward hook per model and target language.
 
 \paragraph{SAE dictionaries.}
 We use the frozen, publicly released residual-stream SAEs of Llama Scope \citep{he2024llamascopeextractingmillions}, Gemma Scope \citep{lieberum2024gemmascopeopensparse} and Qwen-Scope \citep{deng2026qwenscopeturningsparsefeatures}. All three suites were trained on activations of the base models and are applied here to the instruction-tuned models; Appendix~\ref{app:sae-quality} reports their reconstruction quality on instruction-tuned activations and compares them with the instruction-tuned SAEs that Gemma Scope provides for Gemma-2-9B-it. At layer $\ell$, the encoder gives features $z^{(\ell)}(x)=E^{(\ell)}(h^{(\ell)}(x))\in\mathbb{R}^m$ for the residual activation $h^{(\ell)}(x)\in\mathbb{R}^d$, and $\Wdec^{(\ell)}\in\mathbb{R}^{d\times m}$ is the decoder matrix with columns $d_j$.
@@ -193,7 +181,7 @@ We use the frozen, publicly released residual-stream SAEs of Llama Scope \citep{
 \subsection{Stage I: language features}
 \label{subsec:stage1}
 
-Discovery uses $N$ meaning-matched pairs $(x^{(k)}_{\mathrm{en}},x^{(k)}_{\ell_t})$ from \Ddisc and activations at the final prompt token. The \emph{selectivity} of feature $j$ is a standardized mean difference,
+A feature that fires more on Spanish than on English text is a candidate for steering toward Spanish, but firing is not causing. Discovery uses $N$ meaning-matched pairs $(x^{(k)}_{\mathrm{en}},x^{(k)}_{\ell_t})$ from \Ddisc and activations at the final prompt token. The \emph{selectivity} of feature $j$ is a standardized mean difference,
 \begin{equation}
 \mathrm{Sel}^{(\ell)}_j=\frac{\mathbb{E}_k\big[z^{(\ell)}_j(x^{(k)}_{\ell_t})-z^{(\ell)}_j(x^{(k)}_{\mathrm{en}})\big]}{\sigma^{(\ell,\ell_t)}_j+\sigma^{(\ell,\mathrm{en})}_j+\epsilon},
 \end{equation}
@@ -209,7 +197,7 @@ Features are ranked by $\max(\mathrm{Sel}^{(\ell)}_j,0)\cdot\max(\mathrm{Lift}^{
 \subsection{Stage II: subspace and window}
 \label{subsec:stage2}
 
-For each layer we stack the feature differences restricted to the support, $\Delta z^{(\ell)}_k=\Pi_{\mathcal{N}^{(\ell)}}\big(z^{(\ell)}(x^{(k)}_{\ell_t})-z^{(\ell)}(x^{(k)}_{\mathrm{en}})\big)$, into a matrix $\Delta Z^{(\ell)}\in\mathbb{R}^{N\times m}$ and compute its singular value decomposition $\Delta Z^{(\ell)}=U\Sigma V^{\top}$. The steering subspace $\mathcal{S}^{(\ell)}_{\ell_t}$ is spanned by the first $r_\ell$ right singular vectors, where $r_\ell$ is the smaller of the effective rank, rounded up, and the index of the largest eigengap (Appendix~\ref{app:stage2}).
+Many selected features encode overlapping aspects of the same shift, and Stage~II exploits this redundancy. For each layer we stack the feature differences restricted to the support, $\Delta z^{(\ell)}_k=\Pi_{\mathcal{N}^{(\ell)}}\big(z^{(\ell)}(x^{(k)}_{\ell_t})-z^{(\ell)}(x^{(k)}_{\mathrm{en}})\big)$, into a matrix $\Delta Z^{(\ell)}\in\mathbb{R}^{N\times m}$ and compute its singular value decomposition $\Delta Z^{(\ell)}=U\Sigma V^{\top}$. The steering subspace $\mathcal{S}^{(\ell)}_{\ell_t}$ is spanned by the first $r_\ell$ right singular vectors, where $r_\ell$ is the smaller of the effective rank, rounded up, and the index of the largest eigengap (Appendix~\ref{app:stage2}).
 
 The intervention window $\mathcal{W}$ is the contiguous range of layers, among those whose subspace is stable under bootstrap resampling, that maximizes a development objective rewarding the defaultness gain and penalizing leakage, KL drift and utility loss (Appendix~\ref{app:stage2}).
 
@@ -230,22 +218,22 @@ and the residual stream is updated additively through the decoder,
 h^{(\ell)}(x)\leftarrow h^{(\ell)}(x)+\gamma\,\Wdec^{(\ell)}\,\delta z^{(\ell)}(x).
 \label{eq:update}
 \end{equation}
-The first term promotes the target language along the stable subspace. The second removes the part of the current state that aligns with the English mean, and is therefore smaller for prompts that already lean away from English. Because the update adds a vector and omits the decoder bias, SAE reconstruction error never enters the forward pass, and $\gamma=0$ reproduces the unedited model exactly. The scale $\gamma$ traces a trade-off curve. At the operating point, $\beta/\lambda=1$ for every pair and $\gamma$ is chosen per model--language pair on \Ddev from $\{0.25,0.5,0.75,1,1.5,2,3\}$ under the guardrails (median 0.75). All hyperparameters are listed in Table~\ref{tab:app-operating-point}.
+The first term promotes the target language along the stable subspace. The second removes the part of the current state that aligns with the English mean, and is therefore smaller for prompts that already lean away from English. Because the update adds a vector and omits the decoder bias, SAE reconstruction error never enters the forward pass, and $\gamma=0$ reproduces the unedited model exactly. At the operating point, $\beta/\lambda=1$ for every pair and $\gamma$ is chosen per model--language pair on \Ddev from $\{0.25,0.5,0.75,1,1.5,2,3\}$ under the guardrails (median 0.75). All hyperparameters are listed in Table~\ref{tab:app-operating-point}.
 
 % ============================================================================
 \section{Experimental Setup}
 \label{sec:setup}
 
 \paragraph{Models and languages.}
-We steer Llama-3.1-8B-Instruct \citep{grattafiori2024llama3herdmodels}, Gemma-2-9B-it and Gemma-2-2B-it \citep{gemma2024gemma2}, and Qwen3-8B \citep{yang2025qwen3} with thinking mode disabled; these are the instruction-tuned models whose model families have public per-layer residual SAE suites. The target languages are Spanish, French, Chinese and Russian (high-resource) and Hindi and Arabic (medium-resource), covering five scripts and both writing directions. All six are covered by XNLI, LCB, Belebele, FLORES-200, XL-Sum and XSafety, and every experiment is run on all 24 model--language pairs.
+We steer Llama-3.1-8B-Instruct \citep{grattafiori2024llama3herdmodels}, Gemma-2-9B-it and Gemma-2-2B-it \citep{gemma2024gemma2}, and Qwen3-8B \citep{yang2025qwen3} with thinking mode disabled; these are the instruction-tuned models whose model families have public per-layer residual SAE suites. The target languages are Spanish, French, Chinese and Russian (high-resource) and Hindi and Arabic (medium-resource), covering five scripts and both writing directions. All six are covered by every benchmark we use, and every experiment is run on all 24 model--language pairs.
 
 \paragraph{Data.}
-Discovery and evaluation pairs come from FLORES-200 \citep{flores200}: \Ddisc and \Ddev from the \texttt{dev} split and \Deval from \texttt{devtest}; sentences used for translation evaluation are excluded from all three. Pairs pass a bidirectional entailment filter, and native speakers audited 100 pairs per language (Table~\ref{tab:app-data}). Conditions C1, C2 and C3 contain 500, 200 and \res{n} evaluation prompts per language.
+Discovery and development pairs (\Ddisc, \Ddev) come from the FLORES-200 \texttt{dev} split and evaluation pairs (\Deval) from \texttt{devtest} \citep{flores200}. Pairs pass an entailment filter audited by native speakers (Table~\ref{tab:app-data}). The \nocue, \neutral and \intent sets contain 500, 200 and \res{n} evaluation prompts per language.
 
 \paragraph{Methods compared.}
 We compare \foxp with eight methods, all run with the same prompts, decoding settings and evaluation harness (Appendix~\ref{app:baselines}).
 
-\emph{Prompting.} The \emph{short instruction} appends ``Answer in \textit{X}.'' to the user's request. The \emph{system prompt} places a single fixed instruction, ``Always respond in \textit{X}.'', in the system turn. It is identical for every model and language, is never tuned, and represents a deployer who controls only the system turn. The \emph{best prompt} is a tuned upper bound on prompting. For every model--language pair we evaluate ten strategies on \Ddev (an instruction before or after the request, an instruction written in the target language, a paraphrase ensemble, one- and three-shot exemplars, a script cue, a persona, the system message above, and a combination) and keep the one with the highest \default (Table~\ref{tab:app-prompt-sweep}). Because the system prompt is one of the ten candidates, the best prompt is at least as strong on \Ddev by construction; unlike the system prompt, it requires tuning for each model and language and editing every user request.
+\emph{Prompting.} The \emph{short instruction} appends ``Answer in \textit{X}.'' to the user's request. The \emph{system prompt} places a single fixed instruction, ``Always respond in \textit{X}.'', in the system turn. It is identical for every model and language, is never tuned, and represents a deployer who controls only the system turn. The \emph{best prompt} is a tuned upper bound: for every model--language pair we keep the best of ten strategies on \Ddev, including the system prompt, exemplars, personas and instructions in the target language (Table~\ref{tab:app-prompt-sweep}).
 
 \emph{Activation steering.} \emph{Difference-in-means} steering adds the mean target-minus-English residual difference in the \foxp window \citep{rimsky-etal-2024-steering}; \emph{difference-in-means with projection} also removes the English direction \citep{arditi2024refusal} and is the dense analogue of Eq.~\ref{eq:edit}; \emph{LAPE neurons} steers language-specific FFN neurons with a matched neuron budget \citep{tang-etal-2024-language}; and \emph{SAE features} adds the decoder directions of the most selective features without causal lift, subspace or window search \citep{chou2025causallanguagecontrolmultilingual}.
 
@@ -254,10 +242,10 @@ We compare \foxp with eight methods, all run with the same prompts, decoding set
 We also combine \foxp with the system prompt. The steering methods are tuned on \Ddev under the same guardrails as \foxp and with at least the same development budget (Table~\ref{tab:app-tuning}), and are also compared along their full strength range.
 
 \paragraph{Metrics.}
-Besides the measures of \S\ref{subsec:metric}, we report \emph{leakage}, the mean increase in \default for the five non-target suite languages under an edit; \emph{KL drift}, the mean KL divergence between edited and unedited next-token distributions over the first three steps; and the utility change $\Delta S$, the mean change over six benchmarks: four with target-language input and two with English input while the edit is active (\S\ref{subsec:utility}). Definitions are in Appendix~\ref{app:metrics}.
+Besides the measures of Section~\ref{subsec:metric}, we report \emph{leakage}, the mean increase in \default for the five non-target suite languages under an edit; \emph{KL drift}, the mean KL divergence between edited and unedited next-token distributions over the first three steps; and the utility change $\Delta S$, the mean change over six benchmarks: four with target-language input and two with English input while the edit is active (Section~\ref{subsec:utility}). Definitions are in Appendix~\ref{app:metrics}.
 
 \paragraph{Statistics.}
-Decoding is greedy unless stated otherwise. Confidence intervals are 95\% percentile bootstrap intervals with the prompt as the resampling unit ($B=2{,}000$). Headline comparisons use paired permutation tests with Holm correction within each table \citep{holm1979simple}; all tests are listed in Table~\ref{tab:app-tests}.
+Decoding is greedy unless stated otherwise. Intervals are 95\% percentile bootstrap intervals over prompts ($B=2{,}000$); headline comparisons use paired permutation tests with Holm correction \citep{holm1979simple} (Table~\ref{tab:app-tests}).
 
 % ============================================================================
 \section{Results}
@@ -296,150 +284,65 @@ Decoding is greedy unless stated otherwise. Confidence intervals are 95\% percen
     \foxp + system prompt             & $0.07$ & $0.06$ & $0.03$ & $0.15$ & 65.0$_{\pm2.8}$ & 0.83 & 0.037 & 0.082 & $-0.4$ \\
     \bottomrule
   \end{tabular}
-  \caption{\textbf{Main comparison} on English prompts without a language cue (C1, \Deval), each method at its operating point. Full \%: full-response rate, mean$_{\pm\text{95\% CI half-width}}$; other columns report means. KL in nats, $\Delta S$ in points. Results under C2 are in Table~\ref{tab:app-c2}, results by language in Table~\ref{tab:languages}.}
+  \caption{\textbf{Main comparison} on English prompts without a language cue (\nocue, \Deval), each method at its operating point. Full \%: full-response rate, mean$_{\pm\text{95\% CI half-width}}$; other columns report means. KL in nats, $\Delta S$ in points. Results on \neutral prompts are in Table~\ref{tab:app-c2}, results by language in Table~\ref{tab:languages}.}
   \label{tab:main}
 \end{table*}
 
-Table~\ref{tab:main} compares all methods at their operating points. \foxp raises the full-response rate from 1.9\% to 58.7\%, more than twice the rate of the best prompt (26.3\%) and the system prompt (24.5\%), and 12.7 points above the strongest dense steering method, difference-in-means with projection (46.0\%). LoRA fine-tuning reaches a similar 60.2\%, with overlapping confidence intervals, but at a higher cost: 1.7 times the KL drift, more than twice the leakage, almost four times the utility loss and a lower LCB pass rate, and it requires training. On language-neutral prompts \foxp is ahead of LoRA (61.1\% vs 58.4\%; Table~\ref{tab:app-c2}). Adding the system prompt to \foxp raises the rate to 65.0\%, against 24.5\% for the system prompt alone. \res{Holm-adjusted $p$ for \foxp against the best prompt, difference-in-means with projection and LoRA.}
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{Figures/revision/fig_tradeoff.pdf}
+  \caption{\textbf{Defaultness against cost.} Each curve sweeps one steering method's strength, macro over 24 model--language pairs; large markers are the operating points of Table~\ref{tab:main}, and the best prompt, the system prompt and LoRA are single points. (a) Full-response rate against KL drift. (b) Full-response rate against utility loss. (c) Mean \dM against KL drift. Curves further up and to the left reach a higher rate at the same cost.}
+  \label{fig:tradeoff}
+\end{figure*}
 
-The comparison does not hinge on the chosen operating points. Along each method's full strength range (Figure~\ref{fig:tradeoff}), \foxp reaches a higher full-response rate than every steering method at every level of KL drift and every level of utility loss, except at the smallest strengths, where all methods remain below 7\%. At the KL drift of the \foxp operating point, the other steering methods reach 39.3--44.7\% (Table~\ref{tab:app-matched}), and none exceeds 54\% at any strength, whereas \foxp reaches 65\%.
+Three patterns stand out in Table~\ref{tab:main}. First, prompting helps far less than one might expect: even the best prompt brings only 26.3\% of responses fully into the target language, and the system prompt 24.5\%. Second, steering does considerably better, and \foxp does best among inference-time methods. It raises the full-response rate from 1.9\% to 58.7\%, more than twice the rate of either prompt and 12.7 points above the strongest dense steering method, difference-in-means with projection (46.0\%). Third, only fine-tuning comes close: LoRA reaches 60.2\%, with overlapping intervals, but with 1.7 times the KL drift, more than twice the leakage, almost four times the utility loss, a lower LCB pass rate and the need for training. On \neutral prompts \foxp is ahead (61.1\% vs 58.4\%; Table~\ref{tab:app-c2}). Prompting and steering are complementary: adding the system prompt to \foxp raises the rate to 65.0\%, against 24.5\% for the system prompt alone. \res{Holm-adjusted $p$ for \foxp against the best prompt, difference-in-means with projection and LoRA.}
+
+Single operating points can mislead if one method is tuned more aggressively, so Figure~\ref{fig:tradeoff} sweeps each method's strength. The conclusion holds. \foxp reaches a higher full-response rate than every other steering method at every level of KL drift and every level of utility loss, except at the smallest strengths, where all methods remain below 7\%. At the KL drift of the \foxp operating point, the other steering methods reach 39.3--44.7\% (Table~\ref{tab:app-matched}), and none exceeds 54\% at any strength, whereas \foxp reaches 65\%. \foxp does not push harder; it spends the same distributional budget on directions that matter for language choice.
 
 \subsection{Languages and selectivity}
 \label{subsec:languages}
 
-\foxp improves every language and every model--language pair. Averaged over models, its full-response rate ranges from 66\% for Spanish to 50\% for Arabic (Table~\ref{tab:languages}). Every method that changes the default ranks the six languages in the same order, from Spanish, French and Russian to Chinese, Hindi and Arabic, so the differences reflect the languages rather than the method. Across the 24 pairs the gain ranges from 31.8 to 69.5 points; the smallest, for Gemma-2-2B-it with Arabic, has a 95\% CI of [23.1, 40.5].
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{Figures/revision/fig_leakage.pdf}
+  \caption{\textbf{Edits are language-selective.} Change (percentage points) against the unedited model for every suite language and English (en) under each language's \foxp edit, macro over four models; the en column is the change in fully English responses.}
+  \label{fig:leakage}
+\end{figure}
 
-The edits are language-selective (Figure~\ref{fig:leakage}). No non-target suite language rises by more than 2.1 points under any edit. Even Spanish and French, which share a script, move by only 1.8 and 2.1 points under each other's edit. Nor are the edits script edits: native-script Hindi and Russian edits also raise the early mass of romanized Hindi and Russian, by 3.3 and 3.6 points, and the supports found from native-script and romanized text overlap more than matched random supports do (Appendix~\ref{app:script-control}).
+\foxp improves every language and every one of the 24 model--language pairs. Averaged over models, its full-response rate ranges from 66\% for Spanish to 50\% for Arabic (Table~\ref{tab:languages}). Every method that changes the default ranks the six languages in the same order, from Spanish, French and Russian to Chinese, Hindi and Arabic, so the differences reflect the languages rather than the method. Across pairs the gain ranges from 31.8 to 69.5 points; even the smallest (Gemma-2-2B-it, Arabic) has a 95\% CI of [23.1, 40.5].
+
+The edits are also selective (Figure~\ref{fig:leakage}): the diagonal gains 33--43 points, mostly at the expense of English, and no non-target suite language rises by more than 2.1 points under any edit. Even Spanish and French, which share a script, move by only 1.8 and 2.1 points under each other's edit. Nor are the edits merely script edits: native-script Hindi and Russian edits also raise the early mass of romanized Hindi and Russian, by 3.3 and 3.6 points, and the supports found from native-script and romanized text overlap more than matched random supports do (Appendix~\ref{app:script-control}).
 
 \subsection{What each component contributes}
 \label{subsec:ablations}
 
-\begin{table}[t]
-  \centering
-  \footnotesize
-  \setlength{\tabcolsep}{2.4pt}
-  \begin{tabular}{@{}lccccc@{}}
-    \toprule
-    \textbf{Variant} & \textbf{\dM}$\uparrow$ & \textbf{Def.}$\uparrow$ & \textbf{$\Delta$} & \textbf{Leak.}$\downarrow$ & \textbf{KL}$\downarrow$ \\
-    \midrule
-    Full \foxp & $0.038$ & 58.7 & -- & .026 & .073 \\
-    \midrule
-    (a) No subspace & $0.021$ & 53.1 & $-5.6$ & .041 & .089 \\
-    (b) No support & $0.012$ & 49.2 & $-9.5$ & .052 & .096 \\
-    (c) Promotion only & $0.019$ & 52.2 & $-6.5$ & .029 & .067 \\
-    (d) Suppression only & $-0.014$ & 34.1 & $-24.6$ & .044 & .081 \\
-    (e1) Earlier window & $0.006$ & 45.1 & $-13.6$ & .035 & .078 \\
-    (e2) Later window & $0.011$ & 47.7 & $-11.0$ & .032 & .076 \\
-    (f) Random support & $-0.022$ & 28.8 & $-29.9$ & .063 & .104 \\
-    (g) Random subspace & $-0.009$ & 36.7 & $-22.0$ & .047 & .091 \\
-    (h1) Entropy-matched & $-0.031$ & 22.4 & $-36.3$ & .058 & .071 \\
-    (h2) Norm-matched & $-0.027$ & 24.6 & $-34.1$ & .055 & .073 \\
-    \bottomrule
-  \end{tabular}
-  \caption{\textbf{Ablations}, macro over 24 model--language pairs; each variant changes one element of \foxp. (a) Stage~I support without the subspace; (b) subspace computed over all features, without the support; (c) $\beta{=}0$; (d) $\lambda{=}0$; (e) window shifted; (f, g) random support or subspace of the same size and rank; (h) random edits in $\mathcal{W}$ matched in entropy change or norm. Def.: \default (\%); $\Delta$: change in \default (points).}
-  \label{tab:ablations}
-\end{table}
 
-Every ablation lowers \default (Table~\ref{tab:ablations}). Promotion carries most of the effect: suppression alone loses 24.6 points, promotion alone 6.5. Both stages of the construction matter. Dropping the subspace or the Stage~I support costs 5.6 and 9.5 points and raises leakage and KL drift, and shifting the window costs 11.0--13.6 points. Random supports and subspaces, and random edits matched in entropy change or norm, lose 22.0--36.3 points. \res{95\% CIs of each drop.} The language shift is low-rank: at the central window layer its effective rank is 8.4, against 12.8 for random supports and 18.4 for meaning-shuffled pairs, and for 20 of the 24 pairs it falls below the 5th percentile of the shuffled-pair null (Table~\ref{tab:app-lowrank}).
+Removing one element of \foxp at a time lowers \default in every case (Table~\ref{tab:ablations} in Appendix~\ref{app:mechanism}). Promotion carries most of the effect: suppression alone loses 24.6 points, promotion alone only 6.5, so the suppression term acts as a refinement rather than the engine of the edit. Both stages of the construction matter. Dropping the subspace or the Stage~I support costs 5.6 and 9.5 points and raises leakage and KL drift, consistent with their role of filtering out noisy or non-specific directions. Where the edit is applied matters as much as what it contains: shifting the window earlier or later costs 11.0--13.6 points. Finally, the effect is not a generic consequence of perturbing the model. Random supports and subspaces, and random edits matched in entropy change or norm, lose 22.0--36.3 points. \res{95\% CIs of each drop.} The language shift itself is low-rank: at the central window layer its effective rank is 8.4, against 12.8 for random supports and 18.4 for meaning-shuffled pairs, and for 20 of the 24 pairs it falls below the 5th percentile of the shuffled-pair null (Table~\ref{tab:app-lowrank}).
 
 \subsection{Is the subspace used for language choice?}
 \label{subsec:necessity}
 
-\begin{table}[t]
-  \centering
-  \footnotesize
-  \setlength{\tabcolsep}{3pt}
-  \begin{tabular}{@{}lccccc@{}}
-    \toprule
-    \textbf{Projected out} & \textbf{Llama} & \textbf{G-9B} & \textbf{G-2B} & \textbf{Qwen} & \textbf{Avg.} \\
-    \midrule
-    Nothing                              & 15.8 & 14.2 & 11.6 & 17.4 & 14.8 \\
-    $\mathcal{S}$ inside $\mathcal{W}$   & \textbf{8.7} & \textbf{7.9} & \textbf{7.1} & \textbf{9.5} & \textbf{8.3} \\
-    Random, same rank                    & 14.0 & 12.8 & 10.4 & 15.2 & 13.1 \\
-    $\mathcal{S}$ outside $\mathcal{W}$  & 13.2 & 12.1 & 10.1 & 14.3 & 12.4 \\
-    \bottomrule
-  \end{tabular}
-  \caption{\textbf{Necessity test.} Compliance (\%) with the explicit instruction ``Answer in \textit{X}.'' when a subspace is projected out of the unedited model, macro over six languages.}
-  \label{tab:necessity}
-\end{table}
-
-Steering along $\mathcal{S}$ shows that the subspace is \emph{sufficient} to change the output language, not that the model \emph{uses} it. To test use, we project $\mathcal{S}^{(\ell)}_{\ell_t}$ out of the unedited model inside $\mathcal{W}$ on prompts that explicitly ask for the target language (Table~\ref{tab:necessity}). Compliance falls from 14.8\% to 8.3\%, whereas a random subspace of the same rank lowers it by only 1.7 points and removing $\mathcal{S}$ outside the window by 2.3 points; the drop appears in every model and language (Table~\ref{tab:app-necessity}). The projection costs only 0.5--1.6 points on XNLI and MMLU (Table~\ref{tab:app-necessity-spec}). \res{Paired differences against the random-subspace and outside-window controls, with 95\% CIs and Holm-adjusted $p$.} The subspace is therefore one route by which the model follows a language instruction, but not the only one: compliance falls by less than half.
+Steering shows that $\mathcal{S}$ is \emph{sufficient} to change the output language, not that the model \emph{uses} it. To test use, we reverse the experiment: we project $\mathcal{S}^{(\ell)}_{\ell_t}$ out of the unedited model inside $\mathcal{W}$ and ask it to follow an explicit instruction, ``Answer in \textit{X}.'' (Table~\ref{tab:necessity}). Removing it makes the instruction harder to follow: compliance falls from 14.8\% to 8.3\%, whereas a random subspace of the same rank lowers it by only 1.7 points and removing $\mathcal{S}$ outside the window by 2.3 points. The drop appears in every model and language and costs only 0.5--1.6 points on XNLI and MMLU (Tables~\ref{tab:app-necessity} and~\ref{tab:app-necessity-spec}). \res{Paired differences against the random-subspace and outside-window controls, with 95\% CIs and Holm-adjusted $p$.} The subspace is thus one route by which the model follows a language instruction, though not the only one.
 
 \subsection{Utility, intent and safety}
 \label{subsec:utility}
 
-\begin{table}[t]
-  \centering
-  \footnotesize
-  \setlength{\tabcolsep}{2.6pt}
-  \begin{tabular}{@{}lcccccc@{}}
-    \toprule
-    \textbf{Task} & \textbf{Sys.} & \textbf{DiM} & \textbf{SAE} & \textbf{LoRA} & \textbf{Ours} & \textbf{Br.} \\
-    \midrule
-    \multicolumn{7}{@{}l}{\textit{Target-language input}} \\
-    XNLI & $-0.3$ & $-0.4$ & $-0.7$ & $-1.0$ & $-0.4$ & 0 \\
-    Belebele & $-0.5$ & $-0.7$ & $-0.9$ & $-1.4$ & $-0.7$ & 1 \\
-    XL-Sum & $+0.2$ & $+0.1$ & $-0.4$ & $-1.1$ & $+0.5$ & 0 \\
-    FLORES & $+0.1$ & 0.0 & $-0.2$ & $-0.8$ & $+0.3$ & 0 \\
-    \multicolumn{7}{@{}l}{\textit{English input, edit active}} \\
-    MMLU & $-0.4$ & $-0.5$ & $-0.8$ & $-1.0$ & $-0.6$ & 1 \\
-    GSM8K & $-0.9$ & $-0.8$ & $-1.2$ & $-1.3$ & $-0.8$ & 2 \\
-    \multicolumn{7}{@{}l}{\textit{LLM-judge ratings of C1 answers (1--5)}} \\
-    Fluency & $-0.1$ & $-0.2$ & $-0.4$ & $-0.6$ & $-0.1$ & 0 \\
-    Adequacy & $-0.2$ & $-0.3$ & $-0.5$ & $-0.8$ & $-0.2$ & 0 \\
-    \bottomrule
-  \end{tabular}
-  \caption{\textbf{Utility}: change against the unedited model (points), macro over 24 pairs, for the system prompt (Sys.), difference-in-means (DiM), SAE features, LoRA and \foxp (Ours). Br.: pairs (of 24) in which \foxp exceeds the tolerance $\epsilon_{\mathrm{util}}$ fixed on \Ddev. XL-Sum: ROUGE-L; FLORES: en$\rightarrow$X composite of chrF++ and COMET; others accuracy.}
-  \label{tab:utility}
-\end{table}
+A language change is of little value if answers get worse, so we measure utility on target-language inputs, on English inputs with the edit active, and in the \nocue answers themselves (Table~\ref{tab:utility}). \foxp leaves target-language tasks essentially unchanged (mean $-0.08$ points, 95\% CI [$-0.25$, $+0.10$]) and costs 0.70 points on English inputs ([$-0.94$, $-0.46$]), for an overall change of $-0.28$ points ([$-0.42$, $-0.14$]). Only 4 of the 144 task--pair combinations exceed the tolerance fixed on \Ddev. LoRA, by contrast, loses 0.8--1.4 points on every benchmark.
 
-\begin{table}[t]
-  \centering
-  \footnotesize
-  \setlength{\tabcolsep}{3pt}
-  \textbf{(a) Safety}\\[2pt]
-  \begin{tabular}{@{}lccc@{}}
-    \toprule
-    \textbf{Method} & \textbf{XSafety}$\uparrow$ & \textbf{Harmful (en)}$\uparrow$ & \textbf{XSTest}$\downarrow$ \\
-    \midrule
-    No edit             & 87.2 & 96.1 & 7.8 \\
-    System prompt       & 86.5 & 95.4 & 9.1 \\
-    Difference-in-means & 87.0 & 95.8 & 8.4 \\
-    LoRA                & 82.1 & 91.3 & 12.6 \\
-    \foxp               & 86.4 & 95.6 & 8.7 \\
-    \bottomrule
-  \end{tabular}
+Refusal rates do not change measurably (Table~\ref{tab:safety}): $-0.8$ points on target-language XSafety prompts ([$-2.7$, $+1.1$]), $-0.5$ on English harmful prompts and $+0.9$ for over-refusal on XSTest, with both intervals including zero. LoRA, by contrast, lowers refusal by about 5 points and raises over-refusal by 4.8.
 
-  \vspace{6pt}
-  \setlength{\tabcolsep}{3.2pt}
-  \textbf{(b) Human evaluation}\\[2pt]
-  \begin{tabular}{@{}lccccc@{}}
-    \toprule
-    \textbf{Method} & \textbf{Lang.\%} & \textbf{Flu.} & \textbf{Adeq.} & \textbf{Nat.} & \textbf{Win\%} \\
-    \midrule
-    Best prompt          & 32.4 & 4.08 & 3.84 & 4.02 & 35 \\
-    Difference-in-means  & 42.8 & 3.74 & 3.62 & 3.71 & 22 \\
-    \foxp                & \textbf{60.7} & 3.89 & 3.78 & 3.63 & \textbf{43} \\
-    \bottomrule
-  \end{tabular}
-  \caption{\textbf{Safety and human evaluation}, macro over 24 pairs. (a) Refusal rate (\%) on target-language XSafety prompts \citep{wang2024xsafety} and English harmful prompts, and over-refusal (\%) on XSTest \citep{rottger2024xstest}. (b) Blind native-speaker ratings of 100 prompts per pair, each rated by 2--3 annotators: responses judged fully in the target language (Lang.\%), fluency, adequacy and naturalness (1--5), and the share of items on which the output was chosen as the best of the three (Win\%).}
-  \label{tab:safety}\label{tab:human}
-\end{table}
-
-Table~\ref{tab:utility} measures utility on target-language inputs, on English inputs with the edit active, and in the answers to C1 prompts. \foxp leaves target-language tasks essentially unchanged (mean $-0.08$ points, 95\% CI [$-0.25$, $+0.10$]) and costs 0.70 points on English inputs ([$-0.94$, $-0.46$]), for an overall change of $-0.28$ points ([$-0.42$, $-0.14$]). Only 4 of the 144 task--pair combinations exceed the tolerance. The system prompt costs about the same, whereas LoRA loses 0.8--1.4 points on every benchmark. Refusal rates do not change measurably (Table~\ref{tab:safety}a): $-0.8$ points on XSafety ([$-2.7$, $+1.1$]), $-0.5$ on English harmful prompts and $+0.9$ for over-refusal on XSTest, with both intervals including zero. LoRA, by contrast, lowers refusal by about 5 points and raises over-refusal by 4.8.
-
-Like a system prompt, \foxp overrides explicit requests for English. On C3 prompts that ask for English it keeps English in 36.8\% of responses ([33.9, 39.8]), an override rate of 63.2\%, against 75.4\% for the system prompt and 4.3\% without an edit (Table~\ref{tab:app-intent}). For prompts written in another suite language it keeps that language in 82.9\% of cases, close to the system prompt (84.1\%). \foxp therefore suits deployments in which the response language is fixed.
+Like a system prompt, \foxp overrides explicit requests for English: on \intent prompts that ask for English it keeps English in 36.8\% of responses ([33.9, 39.8]), an override rate of 63.2\%, against 75.4\% for the system prompt and 4.3\% without an edit (Table~\ref{tab:app-intent}). For prompts written in another suite language it keeps that language in 82.9\% of cases, close to the system prompt (84.1\%). \foxp therefore suits deployments in which the response language is fixed.
 
 \subsection{Human evaluation}
 \label{subsec:human}
 
-Native speakers rated the outputs of \foxp, the best prompt and difference-in-means steering without knowing which method produced them (Table~\ref{tab:human}b). They judged 60.7\% of \foxp responses to be fully in the target language, against 32.4\% for the best prompt and 42.8\% for difference-in-means (Holm-adjusted $p=.008$ and $.014$). Fluency and adequacy differ from both baselines by at most 0.2 points, and no such difference survives Holm correction. \foxp outputs are, however, less natural than those of the best prompt (3.63 vs 4.02, Holm $p=.018$). Annotators chose the \foxp output as the best of the three most often (43\% of items). Krippendorff's $\alpha$ is .57--.78 for the ratings and .54--.61 for the choice of best output (Appendix~\ref{app:human}).
+Native speakers rated the outputs of \foxp, the best prompt and difference-in-means steering without knowing which method produced them (Table~\ref{tab:human}). They found 60.7\% of \foxp responses to be fully in the target language, against 32.4\% for the best prompt and 42.8\% for difference-in-means (Holm-adjusted $p=.008$ and $.014$). Fluency and adequacy differ from both baselines by at most 0.2 points (not significant after Holm correction). \foxp outputs are, however, less natural than those of the best prompt (3.63 vs 4.02, Holm $p=.018$). On balance, annotators chose the \foxp output as the best of the three most often (43\% of items). Agreement is moderate to good (Krippendorff's $\alpha$ .54--.78; Appendix~\ref{app:human}).
 
 % ============================================================================
 \section{Conclusion}
 \label{sec:conclusion}
 
-We studied the language that multilingual models choose when a prompt does not specify one. We introduced an early-decoding defaultness score, validated it on 24 model--language pairs, and proposed \foxp, a gradient-free edit built from public sparse autoencoders. Across four models and six languages, \foxp raises the full-response rate from 1.9\% to 58.7\%, against 44.7\% for the strongest steering baseline at matched distributional shift and 60.2\% for LoRA fine-tuning at a higher shift, with a mean utility change of $-0.28$ points and no measurable change in refusal rates. Projecting the steering subspace out of the unedited model lowers compliance with an explicit language instruction from 14.8\% to 8.3\%, against 13.1\% for a random subspace, so the model uses the subspace as one route, though not the only one, to follow such instructions.
+Multilingual models fall back to English when nothing in a request says otherwise. We showed that this choice can be read from the first three decoding steps, where prediction saturates, where models commit to a language and where a steered opening is strongest, and that the resulting score passes fifteen validity tests. Building on this early decision, \foxp raises the full-response rate from 1.9\% to 58.7\% across four models and six languages, against 44.7\% for the strongest steering baseline at matched shift and 60.2\% for LoRA at a higher shift, with a utility change of $-0.28$ points and no measurable change in refusals. Explaining why models prefer English, and extending the method to low-resource languages and larger models, are natural next steps.
 
 \clearpage
 
@@ -455,7 +358,7 @@ All six languages are high- or medium-resource, and the largest model has 9B par
 Llama Scope, Gemma Scope and Qwen-Scope were trained on base-model activations and are applied here to instruction-tuned models. The additive update keeps the forward pass exact when the edit is zero, but feature quality may be lower than on the base models (FVU 0.27--0.39 in the window; Table~\ref{tab:app-sae}). For Gemma-2-9B-it, where Gemma Scope also provides instruction-tuned dictionaries, swapping them in changes \default, the full-response rate and utility by amounts whose 95\% intervals include zero (Table~\ref{tab:app-it-sae}).
 
 \paragraph{Scope of claims.}
-Our claims concern the default language under the prompt conditions we test. We do not claim that \foxp adds linguistic competence, separates language from meaning, or that the selected features form a single disentangled language factor. Like a system prompt, \foxp overrides explicit requests for English (63.2\% of such C3 prompts, against 75.4\% for the system prompt), so it should not be left active where users may legitimately ask for English.
+Our claims concern the default language under the prompt conditions we test. We do not claim that \foxp adds linguistic competence, separates language from meaning, or that the selected features form a single disentangled language factor. Like a system prompt, \foxp overrides explicit requests for English (63.2\% of such \intent prompts, against 75.4\% for the system prompt), so it should not be left active where users may legitimately ask for English.
 
 \section*{Ethical Considerations}
 

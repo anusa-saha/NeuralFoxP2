@@ -46,7 +46,7 @@ for ax, cond in zip(axes, ["C1", "C2"]):
     ax.set_xticks(range(6), LANGS)
     for s in ax.spines.values():
         s.set_visible(False)
-    label = "C1: English prompt" if cond == "C1" else "C2: language-neutral prompt"
+    label = "No-Cue: English prompt" if cond == "C1" else "Neutral: language-neutral prompt"
     ax.set_title(label, fontsize=6.5, loc="left", pad=2)
 
 cb = fig.colorbar(im, ax=axes, orientation="vertical", fraction=0.05, pad=0.03, aspect=20)

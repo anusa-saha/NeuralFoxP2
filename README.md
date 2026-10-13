@@ -1,158 +1,124 @@
 # Neural FOXP2
 
-**Language Steering via Sparse Autoencoder Interventions — Multi-Language Pipeline**
+Code for **Neural FOXP2: Measuring and Steering the Default Response Language of Multilingual Language Models**.
 
-Neural FOXP2 identifies and manipulates language-specific neurons inside Large Language Models using Sparse Autoencoders. This repository supports **Hindi** and **Spanish** pipelines, selectable at runtime.
+When a prompt gives no cue about the answer language, multilingual LMs usually reply in English. This repository
 
----
+1. **measures** that default with an early-decoding *defaultness score* ΔM read from the first three decoding steps, and
+2. **steers** it with Neural FOXP2, a gradient-free edit built from frozen public sparse autoencoders (SAEs):
+   - **Stage I** selects SAE features that are both language-selective and causally effective,
+   - **Stage II** compresses them into a low-rank subspace per layer and picks a contiguous layer window,
+   - **Stage III** adds a signed update inside that window: promote the target language, remove the English component.
 
-## Project Structure
+The model's weights are never changed, and at γ = 0 the hook reproduces the unedited model exactly.
+
+## Layout
 
 ```
-NeuralFoxP2/
-├── main.py              # Root launcher (language selector)
-├── config.py            # Shared configuration & hyperparameters
-├── README.md            # This file
-│
-├── hindi/               # Hindi ↔ English pipeline
-│   ├── main.py          # Pipeline entry point
-│   ├── config.py        # (imports shared config)
-│   ├── data.py          # Data loading & preprocessing
-│   ├── models.py        # SAE class & model loading
-│   ├── utils.py         # Helper functions
-│   ├── stage1.py        # Stage I  — Language neuron localization
-│   ├── stage2.py        # Stage II — Steering direction identification
-│   ├── stage3.py        # Stage III — Intervention edit rule
-│   ├── requirements.txt
-│   └── README.md
-│
-└── spanish/             # Spanish ↔ English pipeline
-    ├── main.py
-    ├── config.py
-    ├── data.py
-    ├── models.py
-    ├── utils.py
-    ├── stage1.py
-    ├── stage2.py
-    ├── stage3.py
-    ├── requirements.txt
-    └── README.md
+run.py                 command line
+prompts/               evaluation prompt sets (Appendix B)
+  no_cue.txt           500 everyday English requests with no language cue
+  neutral.txt          200 prompts made only of arithmetic and symbols
+  intent.txt           240 requests that explicitly ask for an English answer
+foxp2/
+  config.py            languages, models + SAE releases, hyperparameters (Table 3), paper artifacts (Table 4)
+  prompts.py           prompting baselines, strategies P1–P10, cue levels L0–L5, judge rubrics, task templates
+  data.py              FLORES-200 meaning-matched pairs with the bidirectional entailment filter
+  model.py             chat formatting, residual hooks, greedy generation, teacher-forced logits
+  sae.py               Llama Scope / Gemma Scope / Qwen-Scope loading
+  tokens.py            diagnostic token sets V_tgt, V_en and weights w(u)
+  score.py             class mass (Eq. 1), ΔM (Eq. 2), KL, AUC, horizon rule D2
+  langid.py            GlotLID + fastText, full-response and switch-away criteria
+  stage1.py            selectivity (Eq. 4) and causal lift (Eq. 5)
+  stage2.py            effective rank, eigengap, bootstrap stability, candidate windows
+  stage3.py            the signed edit (Eqs. 6–8) and the necessity projection
+  tuning.py            window / γ objective with the leakage, KL and utility guardrails
+  evaluate.py          DEFAULT, full-response rate, leakage, KL₃, KL¹⁰_ref, multi-turn
+  baselines.py         prompting, difference-in-means (± projection), LAPE, SAE features, logit bias, LoRA
+  utility.py           ΔS over XNLI, Belebele, XL-Sum, FLORES, MMLU, GSM8K
+  safety.py, judge.py  refusal / over-refusal and LLM-judge ratings
+  stats.py             bootstrap intervals, sign-flip tests, Holm correction
+  pipeline.py          one model–language experiment end to end
 ```
 
----
-
-## Pipeline Overview
-
-Both language pipelines follow the same three-stage process:
-
-| Stage | Name | What it does |
-|-------|------|-------------|
-| **I** | Localize Language Neurons | Train SAEs on model activations, compute selectivity & causal lift, identify language-specific features |
-| **II** | Low-Rank Steering Directions | Compute language shift matrices, SVD for steering subspace, select optimal layer window |
-| **III** | Intervention Edit Rule | Compute prototype directions, grid-search for optimal λ/β, apply signed sparse edits |
-
----
-
-## Prerequisites
-
-- **Python** 3.8+
-- **PyTorch** 2.0+
-- **NVIDIA GPU** with ≥ 24 GB VRAM (for Llama-3.1-8B)
-- **HuggingFace** account with Llama model access and an API token
-
----
-
-## Installation
+## Setup
 
 ```bash
-cd D:\NeuralFoxP2
-
-# Install dependencies (same for both languages)
-pip install -r hindi/requirements.txt
+pip install -r requirements.txt
+huggingface-cli login   # Llama 3.1, Gemma 2 and FLORES+ are gated
 ```
 
----
+A single 80 GB GPU is comfortable for the 8–9B models. SAEs are loaded one layer at a time during Stages I–II and only
+the window's SAEs stay resident afterwards.
 
 ## Usage
 
-### Recommended — via root launcher
-
-The root `main.py` lets you pick the language and forwards all arguments to the selected pipeline.
+Models: `llama-3.1-8b`, `gemma-2-9b`, `gemma-2-2b`, `qwen3-8b`. Languages: `es fr zh ru hi ar`.
 
 ```bash
-# Full Hindi pipeline
-python main.py --language hindi --hf-token YOUR_TOKEN
+# Build the edit: Stages I–II on every layer, window search, then γ on D_dev
+python run.py build --model gemma-2-2b --lang es
 
-# Full Spanish pipeline
-python main.py --language spanish --hf-token YOUR_TOKEN
+# Faster: reuse the paper's window (Table 4) and only run Stages I–II inside it
+python run.py build --model gemma-2-2b --lang es --paper-window
 
-# Single-layer quick test (Hindi)
-python main.py --language hindi --hf-token YOUR_TOKEN --layers 18 --epochs 50
+# Tune every baseline under the same guardrails and evaluate all methods
+python run.py evaluate --model gemma-2-2b --lang es --set no_cue
+python run.py evaluate --model gemma-2-2b --lang es --set neutral
+python run.py evaluate --model gemma-2-2b --lang es --set intent      # see full_english
 
-# Run only Stage 1
-python main.py --language hindi --stage 1 --hf-token YOUR_TOKEN
-
-# Resume from a checkpoint
-python main.py --language spanish --stage 2 --resume-from ./outputs/stage1_checkpoint.pkl
+# Matched-shift comparison, ablations / necessity, and the horizon test D2
+python run.py sweep    --model gemma-2-2b --lang es
+python run.py ablate   --model gemma-2-2b --lang es
+python run.py validate --model gemma-2-2b --lang es
 ```
 
-### Alternative — run directly from a language folder
+Add `--utility` to include the utility guardrail while tuning and to report ΔS per method (slow: six benchmarks per
+setting). Add `--no-lora` to skip LoRA training.
 
-```bash
-cd hindi
-python main.py --hf-token YOUR_TOKEN --layers 8-23 --n-prompts 2500
-
-cd ../spanish
-python main.py --hf-token YOUR_TOKEN --layers 8-23 --n-prompts 2500
-```
-
----
-
-## CLI Arguments
-
-| Argument | Default | Description |
-|----------|---------|-------------|
-| `--language` | *(required)* | Language pipeline: `hindi` or `spanish` *(root launcher only)* |
-| `--hf-token` | `""` | HuggingFace API token |
-| `--layers` | `8-23` | Layer range (e.g. `8-23` or `18`) |
-| `--n-prompts` | `2500` | Number of parallel prompts |
-| `--epochs` | `150` | SAE training epochs |
-| `--output-dir` | `./outputs` | Directory for results & checkpoints |
-| `--resume-from` | `None` | Path to a checkpoint `.pkl` file |
-| `--stage` | `all` | Stage to run: `all`, `1`, `2`, or `3` |
-
----
-
-## Configuration
-
-Edit `config.py` (root-level) to modify shared hyperparameters:
+Using a built edit from Python:
 
 ```python
-@dataclass
-class Config:
-    model_name: str = "meta-llama/Llama-3.1-8B-Instruct"
-    layer_range: List[int] = field(default_factory=lambda: list(range(8, 24)))
-    n_features: int = 1024
-    epochs: int = 150
-    lr: float = 5e-4
-    lambda_sparse: float = 5e-3
-    # ... see config.py for full list
+from foxp2.pipeline import Experiment
+
+exp = Experiment("gemma-2-2b", "es")
+foxp2 = exp.load_edit()
+with foxp2.method().active(exp.lm):
+    print(exp.lm.generate([exp.lm.chat("What are the health benefits of green tea?")], 128).texts[0])
 ```
 
----
+## Outputs
 
-## Output
-
-Each pipeline saves checkpoints after every stage:
+Everything is written to `outputs/<model>/<lang>/`:
 
 | File | Contents |
 |------|----------|
-| `outputs/stage1_checkpoint.pkl` | SAEs and language neurons |
-| `outputs/stage2_checkpoint.pkl` | Steering directions & layer window |
-| `outputs/final_checkpoint.pkl` | Complete results (all stages) |
+| `splits.json` | D_disc (300), D_dev (200), D_eval (300) and the FLORES utility sentences |
+| `layer_profile.json` | per-layer rank, effective rank, stability, selectivity and lift |
+| `neural_foxp2.pt` | the edit: window, per-layer vectors, support, γ, λ, β |
+| `baselines.json` | each baseline's tuned setting |
+| `results_<set>.json` | DEFAULT, full-response rate (95% CI), switch-away, line pass, leakage, KL₃, KL¹⁰_ref, tests |
+| `<set>/<method>.jsonl` | every prompt and response |
 
----
+## Prompts from the paper
 
-## License
+All prompts are in `foxp2/prompts.py` and `prompts/`:
 
-MIT License
+- **Short instruction** – `"{prompt} Answer in X."`; **system prompt** – `"Always respond in X."`
+- **Best prompt** – the best of ten strategies on D_dev (Table 6): user-turn cue, bilingual cue, system prompt,
+  system + instruction, native-language system message, language first, role framing, task cue, stated preference, and
+  the P3 + P4 + P8 combination.
+- **Cue levels L0–L5** for the score validation: no cue, a region, one target-language word, an English instruction,
+  the instruction in the target language, and the whole prompt translated.
+- **Multi-turn follow-ups** – "Can you explain that in a little more detail?" and
+  "What is the most important point I should remember?"
+- **LLM-judge rubrics** for fluency, adequacy, naturalness and language (Appendix L) and for refusals (Appendix K.3).
+
+## Choices the paper leaves open
+
+- The window objective's weights are α_leak = 1, α_kl = 0.5, α_util = 0.05.
+- Causal lift is measured for the 256 most selective features per layer on 32 D_dev prompts.
+- The eigengap search runs up to rank 16, and the bootstrap keeps the Stage I support fixed.
+- The edit is applied at every token position, prompt and response alike.
+- LoRA adapts the attention projections (q, k, v, o).
+- XSafety prompts are read from a local CSV (`safety.load_xsafety`).
